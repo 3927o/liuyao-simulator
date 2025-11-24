@@ -86,33 +86,45 @@ function Coin({ position, id }: { position: [number, number, number], id: string
 function SensorBox({ isEnabled }: { isEnabled: boolean }) {
   const api = useRef<any>(null);
   
-  // 存储传感器数据 (使用 ref 以避免重渲染)
-  const sensorData = useRef({
-    beta: 0,  // X轴倾斜 (前后)
-    gamma: 0, // Y轴倾斜 (左右)
-    accX: 0,  // X轴加速度
-    accY: 0   // Y轴加速度
+  // 1. 新增：校准状态
+  const calibration = useRef({
+    beta: 0,   // 初始的前后倾斜值
+    gamma: 0,  // 初始的左右倾斜值
+    isSet: false // 是否已完成校准
   });
 
-  // 当前物理状态
+  // 存储传感器实时数据
+  const sensorData = useRef({
+    beta: 0,  
+    gamma: 0, 
+    accX: 0,  
+    accY: 0   
+  });
+
   const currentPos = useRef(new THREE.Vector3(0, 0, 0));
   const currentRot = useRef(new THREE.Quaternion());
 
   useEffect(() => {
     if (!isEnabled) return;
 
-    // 1. 处理倾斜 (Orientation)
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      // Beta: -180 到 180 (前后倾斜)，我们限制在 +/- 45度
-      // Gamma: -90 到 90 (左右倾斜)，我们限制在 +/- 45度
-      sensorData.current.beta = e.beta || 0;
-      sensorData.current.gamma = e.gamma || 0;
+      const rawBeta = e.beta || 0;
+      const rawGamma = e.gamma || 0;
+
+      // --- 关键修改：第一次收到数据时，进行校准 ---
+      if (!calibration.current.isSet) {
+        calibration.current.beta = rawBeta;
+        calibration.current.gamma = rawGamma;
+        calibration.current.isSet = true;
+        console.log("校准完成，基准点:", rawBeta, rawGamma);
+      }
+
+      // --- 计算相对角度 (当前角度 - 初始角度) ---
+      sensorData.current.beta = rawBeta - calibration.current.beta;
+      sensorData.current.gamma = rawGamma - calibration.current.gamma;
     };
 
-    // 2. 处理摇晃 (Motion/Acceleration)
     const handleMotion = (e: DeviceMotionEvent) => {
-      // accelerationIncludingGravity 包含重力，acceleration 是纯用户施加的力
-      // 我们用 acceleration 来模拟“甩动”
       if (e.acceleration) {
         sensorData.current.accX = e.acceleration.x || 0;
         sensorData.current.accY = e.acceleration.y || 0;
@@ -125,52 +137,43 @@ function SensorBox({ isEnabled }: { isEnabled: boolean }) {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
       window.removeEventListener('devicemotion', handleMotion);
+      // 组件卸载或重置时，重置校准状态
+      calibration.current.isSet = false;
     };
   }, [isEnabled]);
 
   useFrame((state, delta) => {
     if (!api.current) return;
 
-    // --- A. 计算目标位置 (基于摇晃加速度) ---
-    // 加速度大 -> 偏离中心远。加速度消失 -> 回到中心。
-    // 注意：手机坐标系 x 是横向，y 是纵向（屏幕朝脸）
-    // 为了防止漂移，我们不累加加速度，而是将加速度直接映射为“偏移量”
-    
-    // 敏感度系数
+    // --- A. 位置 (摇晃) ---
     const SHAKE_SENSITIVITY = 0.5; 
-    const MAX_OFFSET = 3; // 最大位移限制
-
-    // 目标位置 = 加速度 * 系数 (反向是为了符合直觉：手机往左甩，盒子往左走)
-    // 注意：DeviceMotion 的坐标系可能因设备而异，通常 x右 y上
+    const MAX_OFFSET = 3; 
     const targetX = clamp(sensorData.current.accX * SHAKE_SENSITIVITY, -MAX_OFFSET, MAX_OFFSET);
     const targetY = clamp(sensorData.current.accY * SHAKE_SENSITIVITY, -MAX_OFFSET, MAX_OFFSET);
 
-    // 平滑移动 (Lerp) - 阻尼感
     currentPos.current.x = THREE.MathUtils.lerp(currentPos.current.x, targetX, 0.1);
     currentPos.current.y = THREE.MathUtils.lerp(currentPos.current.y, targetY, 0.1);
 
 
-    // --- B. 计算目标旋转 (基于倾斜角度) ---
-    // 将角度转换为弧度
-    const radBeta = THREE.MathUtils.degToRad(sensorData.current.beta);   // 前后翻转 -> 绕 X 轴
-    const radGamma = THREE.MathUtils.degToRad(sensorData.current.gamma); // 左右翻转 -> 绕 Z 轴 (注意：Z轴是R3F的深度，但视觉上左右倾斜对应Z轴旋转)
+    // --- B. 旋转 (倾斜) - 使用相对角度 ---
+    
+    // 限制最大倾角 (例如 45度)，防止用户翻转手机导致盒子翻个底朝天
+    // 这里使用的是已经减去初始值后的“相对角度”
+    const MAX_TILT = Math.PI / 4; // 45度
 
-    // 限制最大倾角 (例如 45度)
-    const MAX_TILT = Math.PI / 4;
+    const radBeta = THREE.MathUtils.degToRad(sensorData.current.beta); 
+    const radGamma = THREE.MathUtils.degToRad(sensorData.current.gamma);
+
     const clampedBeta = clamp(radBeta, -MAX_TILT, MAX_TILT);
     const clampedGamma = clamp(radGamma, -MAX_TILT, MAX_TILT);
 
     const targetQuaternion = new THREE.Quaternion().setFromEuler(
-      // 欧拉角顺序: X, Y, Z. 
-      // X轴旋转对应 Beta (前后倾)
-      // Z轴旋转对应 -Gamma (左右倾，负号是为了方向符合直觉)
       new THREE.Euler(clampedBeta, 0, -clampedGamma)
     );
 
-    // 平滑旋转 (Slerp)
     currentRot.current.slerp(targetQuaternion, 0.1);
 
-    // --- C. 提交给物理引擎 ---
+    // --- C. 提交物理 ---
     api.current.setNextKinematicTranslation({ 
       x: currentPos.current.x, 
       y: currentPos.current.y, 
@@ -181,18 +184,17 @@ function SensorBox({ isEnabled }: { isEnabled: boolean }) {
 
   return (
     <RigidBody ref={api} type="kinematicPosition" friction={0.5} colliders={false}>
-      {/* 摄像机跟随 */}
       <PerspectiveCamera makeDefault position={[0, 7, 0]} rotation={[-Math.PI / 2, 0, 0]} fov={45} />
       
-      {/* 物理墙壁 */}
-      <CuboidCollider args={[5, 2.5, 5]} position={[0, -3.5, 0]} /> {/* 底 */}
-      <CuboidCollider args={[5, 2.5, 5]} position={[0, 3.5, 0]} />  {/* 顶 */}
-      <CuboidCollider args={[8, 6, 2.5]} position={[0, 0, 5.5]} />   {/* 前 */}
-      <CuboidCollider args={[8, 6, 2.5]} position={[0, 0, -5.5]} />  {/* 后 */}
-      <CuboidCollider args={[2.5, 6, 5]} position={[5.5, 0, 0]} />   {/* 右 */}
-      <CuboidCollider args={[2.5, 6, 5]} position={[-5.5, 0, 0]} />  {/* 左 */}
+      {/* 碰撞体保持不变 */}
+      <CuboidCollider args={[5, 2.5, 5]} position={[0, -3.5, 0]} /> 
+      <CuboidCollider args={[5, 2.5, 5]} position={[0, 3.5, 0]} /> 
+      <CuboidCollider args={[8, 6, 2.5]} position={[0, 0, 5.5]} /> 
+      <CuboidCollider args={[8, 6, 2.5]} position={[0, 0, -5.5]} /> 
+      <CuboidCollider args={[2.5, 6, 5]} position={[5.5, 0, 0]} /> 
+      <CuboidCollider args={[2.5, 6, 5]} position={[-5.5, 0, 0]} /> 
 
-      {/* 视觉盒子 */}
+      {/* 视觉 Mesh 保持不变 */}
       <mesh castShadow receiveShadow>
         <boxGeometry args={[6, 2, 6]} />
         <meshPhysicalMaterial
