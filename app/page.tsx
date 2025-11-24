@@ -57,7 +57,7 @@ function Coin({ position, id }: { position: [number, number, number], id: string
         <meshStandardMaterial attach="material-0" color="#D4AF37" metalness={0.8} roughness={0.3} />
         <meshStandardMaterial attach="material-1" color="#d32f2f" metalness={0.4} roughness={0.5} />
         <meshStandardMaterial attach="material-2" color="#111111" metalness={0.4} roughness={0.5} />
-        <Html position={[0, 0.8, 0]} center centerAlgin>
+        <Html position={[0, 0.8, 0]} center>
           <div className={`px-2 py-0.5 rounded text-[10px] font-bold pointer-events-none select-none whitespace-nowrap transition-all duration-200
             ${status === '阳' ? 'bg-red-100 text-red-600 border border-red-200 scale-100 opacity-100' : ''}
             ${status === '阴' ? 'bg-slate-800 text-white border border-slate-600 scale-100 opacity-100' : ''}
