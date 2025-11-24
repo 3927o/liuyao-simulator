@@ -90,11 +90,11 @@ function Coin({ position, id }: { position: [number, number, number], id: string
       position={position} 
       colliders="hull" 
       restitution={0.3} 
-      friction={0.3} 
+      friction={0.4} 
       ccd={true}
       // damping: 阻尼，让它停得稍微快一点，不至于在地上滑太久
-      linearDamping={0.5} 
-      angularDamping={0.5}
+      linearDamping={0.7} 
+      angularDamping={0.7}
     >
       <mesh ref={meshRef} castShadow>
         <cylinderGeometry args={[0.4, 0.4, 0.05, 32]} />
@@ -181,7 +181,7 @@ function ShakingBox() {
       */}
       <PerspectiveCamera 
         makeDefault 
-        position={[0, 18, 0]} 
+        position={[0, 7, 0]} 
         rotation={[-Math.PI / 2, 0, 0]} 
         fov={45}
       />
@@ -234,7 +234,7 @@ function ShakingBox() {
  */
 export default function Home() {
   return (
-    <main className="h-screen w-screen bg-slate-900">
+    <main className="h-[100vmin] w-[100vmin] bg-slate-900">
       {/* shadows: 开启阴影计算 */}
       <Canvas shadows>
         <Suspense fallback={null}>
@@ -253,7 +253,7 @@ export default function Home() {
         {/* 2. 物理世界 */}
         {/* debug={true}: 开启调试模式！你会看到绿色的线框，这是物理引擎的“天眼” */}
         {/* gravity={[0, -9.8, 0]}: 设置重力方向向下 */}
-        <Physics debug={true} gravity={[0, -20, 0]} timeStep={1/120}> {/* 重力设大一点，掉落感更强 */}
+        <Physics debug={false} gravity={[0, -20, 0]} timeStep={1/120}> {/* 重力设大一点，掉落感更强 */}
           
           {/* 放入我们的主角 */}
           <ShakingBox />
