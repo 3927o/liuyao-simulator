@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* 确保 Canvas 能撑满屏幕 */
 html, body, #root {
