@@ -81,7 +81,7 @@ export default function DivinationPage() {
   const renderOrder = [5, 4, 3, 2, 1, 0];
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-300 p-4 md:p-8 font-mono selection:bg-neutral-700 selection:text-white">
+    <div className="h-screen w-full overflow-y-auto overflow-x-hidden bg-neutral-950 text-neutral-300 p-4 md:p-8 font-mono selection:bg-neutral-700 selection:text-white">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* === Header === */}
