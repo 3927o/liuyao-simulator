@@ -60,8 +60,8 @@ export function Coin({ position, id }: CoinProps) {
       restitution={0.2}
       friction={0.6}
       ccd={true}
-      linearDamping={0.6}
-      angularDamping={0.6}
+      linearDamping={0.4}
+      angularDamping={0.4}
       mass={50}
     >
       <CylinderCollider args={[0.04, 0.6]} />

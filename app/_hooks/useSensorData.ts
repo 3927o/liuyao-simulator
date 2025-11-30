@@ -7,29 +7,17 @@ export interface SensorData {
   accY: number;
 }
 
-/**
- * Hook: 处理传感器数据监听
- * 返回一个 ref 对象，包含当前的姿态(beta, gamma)和加速度(accX, accY)
- */
 export function useSensorData(isEnabled: boolean) {
+  // 初始化为 0
   const sensorData = useRef<SensorData>({ beta: 0, gamma: 0, accX: 0, accY: 0 });
-  const calibration = useRef({ beta: 0, gamma: 0, isSet: false });
 
   useEffect(() => {
     if (!isEnabled) return;
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      const rawBeta = e.beta || 0;
-      const rawGamma = e.gamma || 0;
-      
-      // 初始校准：以当前手持角度为归零点
-      if (!calibration.current.isSet) {
-        calibration.current.beta = rawBeta;
-        calibration.current.gamma = rawGamma;
-        calibration.current.isSet = true;
-      }
-      sensorData.current.beta = rawBeta - calibration.current.beta;
-      sensorData.current.gamma = rawGamma - calibration.current.gamma;
+      // 修改点：不再进行任何减法校准，直接返回传感器原始值
+      sensorData.current.beta = e.beta || 0;
+      sensorData.current.gamma = e.gamma || 0;
     };
 
     const handleMotion = (e: DeviceMotionEvent) => {
@@ -45,7 +33,6 @@ export function useSensorData(isEnabled: boolean) {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
       window.removeEventListener('devicemotion', handleMotion);
-      calibration.current.isSet = false;
     };
   }, [isEnabled]);
 
