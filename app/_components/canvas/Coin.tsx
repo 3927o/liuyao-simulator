@@ -61,10 +61,11 @@ export function Coin({ position, id, onSettle, resetSignal }: CoinProps) {
       const dot = VECTORS.localY.dot(VECTORS.worldUp);
 
       let result: '阳' | '阴' | '侧立' = '侧立';
-      // dot > 0.7: 物理 Y 朝上 -> 视觉背面朝上 -> 阴
-      // dot < -0.7: 物理 Y 朝下 -> 视觉正面朝上 -> 阳
-      if (dot > 0.7) result = '阴';
-      else if (dot < -0.7) result = '阳';
+      // dot > 0.3: 物理 Y 朝上 -> 视觉背面朝上 -> 阴
+      // dot < -0.3: 物理 Y 朝下 -> 视觉正面朝上 -> 阳
+      // 只有接近垂直时才算侧立
+      if (dot > 0.3) result = '阴';
+      else if (dot < -0.3) result = '阳';
       
       setStatus(result);
       setIsSettled(true);

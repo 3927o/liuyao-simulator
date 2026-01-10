@@ -235,7 +235,7 @@ export default function Home() {
               </>
             )}
 
-            <Physics gravity={[0, -50, 0]} timeStep={1 / 60} debug={true}>
+            <Physics gravity={[0, -50, 0]} timeStep={1 / 60} debug={false}>
               <SensorBox isEnabled={granted} isDebugCamera={isDebugCamera} onShake={handleShake} />
               <Coin id="COIN-01" position={[-1.2, 0.5, 0.2]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
               <Coin id="COIN-02" position={[0, 0.8, -0.5]} onSettle={handleCoinSettle} resetSignal={resetSignal} />

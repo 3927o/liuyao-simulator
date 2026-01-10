@@ -137,8 +137,8 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
       <PerspectiveCamera
         ref={cameraRef}
         makeDefault={!isDebugCamera}
-        position={[0, CONFIG.camHeight, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 8, 10]}
+        rotation={[-Math.PI / 5, 0, 0]}
         fov={CONFIG.fov}
         far={30}
       />
