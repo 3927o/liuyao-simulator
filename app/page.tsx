@@ -141,7 +141,17 @@ export default function Home() {
           <div className="text-sm font-medium text-gray-800">
             六爻起卦
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDebugCamera(prev => !prev)}
+              className={`px-3 py-1 text-xs rounded-full transition-all ${
+                isDebugCamera
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {isDebugCamera ? '上帝模式' : '调试'}
+            </button>
             <span className="text-xs text-gray-400">
               {currentLineIndex}/6
             </span>
