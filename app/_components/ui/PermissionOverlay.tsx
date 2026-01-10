@@ -11,14 +11,16 @@ interface PermissionOverlayProps {
  */
 export function PermissionOverlay({ onRequestPermission }: PermissionOverlayProps) {
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
-      <button
-        onClick={onRequestPermission}
-        className="group relative px-8 py-3 bg-transparent overflow-hidden border border-cyan-700 text-cyan-500 font-bold tracking-widest transition-all hover:bg-cyan-900/30 hover:border-cyan-400 hover:text-cyan-200"
-      >
-        <span className="relative z-10">INITIALIZE</span>
-        <div className="absolute inset-0 h-full w-full scale-0 transition-all duration-300 group-hover:scale-100 group-hover:bg-cyan-900/10"></div>
-      </button>
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+      <div className="text-center space-y-6">
+        <div className="text-gray-400 text-sm">需要传感器权限以开始摇卦</div>
+        <button
+          onClick={onRequestPermission}
+          className="px-8 py-3 bg-gray-900 text-white rounded-full text-sm font-medium transition-all hover:bg-gray-800 hover:scale-105 active:scale-95"
+        >
+          开始
+        </button>
+      </div>
     </div>
   );
 }

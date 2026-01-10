@@ -6,6 +6,6 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* 防止出现滚动条 */
-  background: #000; /* 设为黑色背景，更有氛围 */
+  overflow: hidden;
+  background: #fafafa;
 }

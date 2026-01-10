@@ -18,25 +18,25 @@ export const CoinMesh = React.memo(({ status }: CoinMeshProps) => {
   // 材质预定义 (使用 useMemo 避免每帧重建)
   const materials = useMemo(() => ({
     bodySide: new THREE.MeshPhysicalMaterial({
-      color: "#d4af37", metalness: 1.0, roughness: 0.2, clearcoat: 1, emissive: "#ff6600", emissiveIntensity: 0.2
+      color: "#c9a227", metalness: 0.9, roughness: 0.3, clearcoat: 0.5
     }),
     bodyFace: new THREE.MeshPhysicalMaterial({
-      color: "#2a1a10", metalness: 0.7, roughness: 0.8, clearcoat: 0
+      color: "#8b7355", metalness: 0.6, roughness: 0.5, clearcoat: 0.2
     }),
     yang: new THREE.MeshStandardMaterial({
-      color: "#ff2200", emissive: "#ff2200", emissiveIntensity: 3, toneMapped: false
+      color: "#b8860b", metalness: 0.8, roughness: 0.3
     }),
     yin: new THREE.MeshStandardMaterial({
-      color: "#00ffff", emissive: "#00ffff", emissiveIntensity: 3, toneMapped: false
+      color: "#4a4a4a", metalness: 0.7, roughness: 0.4
     })
   }), []);
 
   const getStatusStyle = () => {
-    const base = "px-2 py-0.5 rounded backdrop-blur-sm border text-[10px] font-mono font-bold pointer-events-none select-none whitespace-nowrap transition-all duration-300";
+    const base = "px-3 py-1 rounded-full text-xs font-medium pointer-events-none select-none whitespace-nowrap transition-all duration-300";
     const anim = status === '...' ? 'scale-50 opacity-0' : 'scale-100 opacity-100 translate-y-12';
-    
-    if (status === '阳') return `${base} ${anim} text-red-400 border-red-500/50 bg-red-900/60 shadow-[0_0_10px_rgba(248,113,113,0.5)]`;
-    if (status === '阴') return `${base} ${anim} text-cyan-300 border-cyan-500/50 bg-cyan-900/60 shadow-[0_0_10px_rgba(34,211,238,0.5)]`;
+
+    if (status === '阳') return `${base} ${anim} text-amber-700 bg-amber-50 border border-amber-200`;
+    if (status === '阴') return `${base} ${anim} text-gray-600 bg-gray-100 border border-gray-200`;
     return `${base} opacity-0`;
   };
 

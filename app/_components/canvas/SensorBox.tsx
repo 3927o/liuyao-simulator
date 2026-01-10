@@ -12,9 +12,10 @@ import { useSensorData } from '../../_hooks/useSensorData';
 interface SensorBoxProps {
   isEnabled: boolean;
   isDebugCamera: boolean;
+  onShake?: () => void;
 }
 
-export function SensorBox({ isEnabled, isDebugCamera }: SensorBoxProps) {
+export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps) {
   const api = useRef<RapierRigidBody>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!);
   
@@ -36,7 +37,7 @@ export function SensorBox({ isEnabled, isDebugCamera }: SensorBoxProps) {
     camHeight: 10.5,
     fov: 45,
     baseHeight: 5,
-    wallThick: 5
+    wallThick: 10
   };
   
   const halfFovRad = THREE.MathUtils.degToRad(CONFIG.fov / 2);
@@ -76,6 +77,8 @@ export function SensorBox({ isEnabled, isDebugCamera }: SensorBoxProps) {
       console.log("检测到剧烈晃动，以当前姿态重置水平面！");
       calibrationOffset.current.beta = raw.beta;
       calibrationOffset.current.gamma = raw.gamma;
+      
+      if (onShake) onShake();
     }
 
     // 更新历史状态，供下一帧使用
@@ -140,14 +143,14 @@ export function SensorBox({ isEnabled, isDebugCamera }: SensorBoxProps) {
         far={30}
       />
 
-      <CuboidCollider args={[10, 2, 10]} position={[0, -3, 0]} />
-      <CuboidCollider args={[10, 2, 10]} position={[0, 6, 0]} />
-      <CuboidCollider args={[CONFIG.wallThick/2, 10, 10]} position={[wallX, wallY, 0]} rotation={[0, 0, tiltAngle]} />
-      <CuboidCollider args={[CONFIG.wallThick/2, 10, 10]} position={[-wallX, wallY, 0]} rotation={[0, 0, -tiltAngle]} />
-      <CuboidCollider args={[10, 10, CONFIG.wallThick/2]} position={[0, wallY, wallX]} rotation={[-tiltAngle, 0, 0]} />
-      <CuboidCollider args={[10, 10, CONFIG.wallThick/2]} position={[0, wallY, -wallX]} rotation={[tiltAngle, 0, 0]} />
+      <CuboidCollider args={[15, 5, 15]} position={[0, -6, 0]} />
+      <CuboidCollider args={[15, 5, 15]} position={[0, 9, 0]} />
+      <CuboidCollider args={[CONFIG.wallThick/2, 15, 15]} position={[wallX, wallY, 0]} rotation={[0, 0, tiltAngle]} />
+      <CuboidCollider args={[CONFIG.wallThick/2, 15, 15]} position={[-wallX, wallY, 0]} rotation={[0, 0, -tiltAngle]} />
+      <CuboidCollider args={[15, 15, CONFIG.wallThick/2]} position={[0, wallY, wallX]} rotation={[-tiltAngle, 0, 0]} />
+      <CuboidCollider args={[15, 15, CONFIG.wallThick/2]} position={[0, wallY, -wallX]} rotation={[tiltAngle, 0, 0]} />
       
-      <gridHelper args={[10, 6, 0x222222, 0x113355]} position={[0, -0.9, 0]} />
+      <gridHelper args={[10, 6, 0xdddddd, 0xeeeeee]} position={[0, -0.9, 0]} />
     </RigidBody>
   );
 }

@@ -9,18 +9,36 @@ import { VECTORS } from '../../_lib/coinConfig';
 interface CoinProps {
   position: [number, number, number];
   id: string;
+  onSettle?: (id: string, result: '阳' | '阴' | '侧立') => void;
+  resetSignal?: number;
 }
 
 /**
  * 组件：硬币物理实体
  */
-export function Coin({ position, id }: CoinProps) {
+export function Coin({ position, id, onSettle, resetSignal }: CoinProps) {
   const [status, setStatus] = useState<string>('...');
   const [isSettled, setIsSettled] = useState(false);
   const bodyRef = useRef<RapierRigidBody>(null);
+  const lastResetSignal = useRef(resetSignal);
 
   useFrame(() => {
     if (!bodyRef.current) return;
+
+    // 监听重置信号
+    if (resetSignal !== lastResetSignal.current) {
+      lastResetSignal.current = resetSignal;
+      setIsSettled(false);
+      setStatus('...');
+      bodyRef.current.wakeUp();
+      // 给一个随机的小冲量，防止死锁
+      bodyRef.current.applyImpulse({ 
+        x: (Math.random() - 0.5) * 0.1, 
+        y: (Math.random() + 0.5) * 0.2, 
+        z: (Math.random() - 0.5) * 0.1 
+      }, true);
+      return;
+    }
     
     const vel = bodyRef.current.linvel();
     const ang = bodyRef.current.angvel();
@@ -42,13 +60,15 @@ export function Coin({ position, id }: CoinProps) {
       VECTORS.localY.set(0, 1, 0).applyQuaternion(bodyRotation);
       const dot = VECTORS.localY.dot(VECTORS.worldUp);
 
+      let result: '阳' | '阴' | '侧立' = '侧立';
       // dot > 0.7: 物理 Y 朝上 -> 视觉背面朝上 -> 阴
       // dot < -0.7: 物理 Y 朝下 -> 视觉正面朝上 -> 阳
-      if (dot > 0.7) setStatus('阴');
-      else if (dot < -0.7) setStatus('阳');
-      else setStatus('侧立');
+      if (dot > 0.7) result = '阴';
+      else if (dot < -0.7) result = '阳';
       
+      setStatus(result);
       setIsSettled(true);
+      if (onSettle) onSettle(id, result);
     }
   });
 

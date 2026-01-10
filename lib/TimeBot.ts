@@ -132,36 +132,3 @@ export class TimeBot {
     };
   }
 }
-
-const bot = new TimeBot();
-
-// ==========================================
-// Case 1: 验证你上传的图片数据
-// 目标：乙巳年 丁亥月 癸卯日 (神煞：驿马-巳, 桃花-子, 日禄-子, 贵人-卯,巳)
-// 注意：图片里没有写具体几点，我们假设是当天中午12点
-// ==========================================
-// 设定日期：2025年11月某日 (需要反推一下乙巳年丁亥月癸卯日是哪天)
-// 经查万年历，2025年11月26日(左右)是癸卯日
-const targetDate = new Date('2024-11-30T01:10:00'); 
-
-console.log("🛠️ 正在进行时光回溯测试 (Backtest)...");
-console.log("目标: 乙巳年 丁亥月 癸卯日");
-const past = bot.getTime(targetDate);
-
-console.log("------------------------------------------------");
-console.log(`📅 日期: ${past.date.toLocaleDateString()}`);
-console.log(`🔠 干支: ${past.year}年 ${past.month}月 ${past.day}日 ${past.hour}时`);
-console.log(`⬛ 空亡: ${past.kongWang}`);
-console.log(`🌟 神煞:`);
-console.log(`   驿马: ${past.shenSha.yiMa}`);
-console.log(`   桃花: ${past.shenSha.taoHua}`);
-console.log(`   日禄: ${past.shenSha.luShen}`);
-console.log(`   贵人: ${past.shenSha.guiRen.join(', ')}`);
-console.log("------------------------------------------------");
-
-// 校验
-if (past.day === '癸卯' && past.shenSha.yiMa === '巳' && past.shenSha.taoHua === '子') {
-  console.log("✅ 历史数据验证成功！神煞计算与图片一致。");
-} else {
-  console.log("⚠️ 历史数据验证可能有偏差，请检查日期是否准确。");
-}
