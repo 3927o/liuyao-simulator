@@ -12,23 +12,19 @@ import { SensorBox } from './_components/canvas/SensorBox';
 import { PermissionOverlay } from './_components/ui/PermissionOverlay';
 import { LiuYaoEngine, YaoValue, HexagramResult } from '../lib/LiuYaoEngine';
 
-// --- 辅助组件：显示当前爻的结果 ---
+// --- 辅助组件：显示当前爻的结果（紧凑版） ---
 function LineResultDisplay({ index, value }: { index: number, value: YaoValue }) {
   let symbol = '';
-  let text = '';
-
   switch (value) {
-    case 6: symbol = 'X'; text = '老阴'; break;
-    case 7: symbol = '—'; text = '少阳'; break;
-    case 8: symbol = '--'; text = '少阴'; break;
-    case 9: symbol = 'O'; text = '老阳'; break;
+    case 6: symbol = 'X'; break;
+    case 7: symbol = '—'; break;
+    case 8: symbol = '--'; break;
+    case 9: symbol = 'O'; break;
   }
 
   return (
-    <div className="flex items-center space-x-3 text-gray-600 border-b border-gray-100 py-2">
-      <span className="text-xs text-gray-400 w-12">第 {index} 爻</span>
-      <span className="font-medium text-lg w-6 text-center text-gray-800">{symbol}</span>
-      <span className="text-sm text-gray-500">{text}</span>
+    <div className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-700 bg-gray-100 rounded-full">
+      {symbol}
     </div>
   );
 }
@@ -135,81 +131,63 @@ export default function Home() {
 
   return (
     <main className="flex items-center justify-center h-screen w-screen bg-gray-50 overflow-hidden text-gray-800">
-      <div className="relative w-[100vmin] h-[100vmin] bg-white rounded-3xl shadow-xl">
+      <div className="relative w-full h-full md:w-[100vmin] md:h-[100vmin] bg-white md:rounded-3xl md:shadow-xl">
 
         {/* --- UI Layer --- */}
         {showButton && <PermissionOverlay onRequestPermission={requestPermission} />}
 
-        {/* 左上角：状态 */}
-        <div className="absolute top-6 left-6 z-40 flex flex-col gap-1">
-          <div className="text-lg font-medium text-gray-800">
+        {/* 顶部：标题和进度 */}
+        <div className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-sm">
+          <div className="text-sm font-medium text-gray-800">
             六爻起卦
           </div>
-          <div className="text-xs text-gray-400">
-            {isShaking ? '摇动中...' : '摇动手机投掷'}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">
+              {currentLineIndex}/6
+            </span>
+            <div className="h-1 w-16 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gray-800 transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${(yaoList.length / 6) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* 右上角：相机切换 */}
-        <div className="absolute top-6 right-6 z-40">
-          <button
-            onClick={() => setIsDebugCamera(prev => !prev)}
-            className={`px-4 py-2 text-xs rounded-full transition-all ${
-              isDebugCamera
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            {isDebugCamera ? '俯视模式' : '切换视角'}
-          </button>
-        </div>
-
-        {/* 中间/底部：引导与结果展示 */}
-        <div className="absolute inset-0 pointer-events-none z-30 flex flex-col items-center justify-end pb-16">
-
+        {/* 底部：爻列表和状态 */}
+        <div className="absolute bottom-0 left-0 right-0 z-40 px-4 py-4 bg-white/80 backdrop-blur-sm">
           {!granted && !showButton && (
-            <div className="text-gray-400 animate-pulse">等待传感器授权...</div>
+            <div className="text-gray-400 text-sm text-center animate-pulse">等待传感器授权...</div>
           )}
 
           {granted && !isFinished && (
-            <div className="mb-8 text-center space-y-3">
-              <div className="text-gray-400 text-sm">
-                {Object.keys(currentResults).length === 3 ? '结算中...' : '摇动手机起卦'}
+            <div className="flex items-center justify-between">
+              {/* 已完成的爻 */}
+              <div className="flex items-center gap-2">
+                {yaoList.map((val, i) => (
+                  <LineResultDisplay key={i} index={i + 1} value={val} />
+                ))}
+                {/* 占位符显示剩余爻位 */}
+                {Array.from({ length: 6 - yaoList.length }).map((_, i) => (
+                  <div key={`empty-${i}`} className="w-8 h-8 rounded-full border-2 border-dashed border-gray-200" />
+                ))}
               </div>
-              <div className="text-5xl font-light text-gray-800">
-                第 <span className="font-semibold">{currentLineIndex}</span> 爻
-              </div>
-              <div className="h-1 w-32 bg-gray-100 mx-auto rounded-full overflow-hidden mt-4">
-                <div
-                  className="h-full bg-gray-800 transition-all duration-500 ease-out rounded-full"
-                  style={{ width: `${(yaoList.length / 6) * 100}%` }}
-                />
+              {/* 状态文字 */}
+              <div className="text-xs text-gray-400">
+                {Object.keys(currentResults).length === 3 ? '结算中...' : isShaking ? '摇动中...' : '摇动手机'}
               </div>
             </div>
           )}
 
-          {/* 实时显示的爻列表 */}
-          <div className="absolute top-24 left-8 w-48 space-y-1 pointer-events-auto bg-white/80 backdrop-blur-sm rounded-xl p-4">
-            {yaoList.length === 0 ? (
-              <div className="text-gray-300 text-sm text-center py-4">尚未起卦</div>
-            ) : (
-              yaoList.map((val, i) => (
-                <LineResultDisplay key={i} index={i + 1} value={val} />
-              ))
-            )}
-          </div>
-
           {isFinished && (
-            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex items-center justify-center pointer-events-auto rounded-3xl">
-              <div className="text-gray-600 text-xl animate-pulse">
-                卦象已成，正在跳转...
-              </div>
+            <div className="text-gray-600 text-center animate-pulse">
+              卦象已成，正在跳转...
             </div>
           )}
         </div>
 
         {/* --- 3D Scene Layer --- */}
-        <Canvas dpr={[1, 2]} gl={{ antialias: true, toneMappingExposure: 1.2 }} className="rounded-3xl">
+        <Canvas dpr={[1, 2]} gl={{ antialias: true, toneMappingExposure: 1.2 }} className="md:rounded-3xl">
           <Suspense fallback={null}>
             <color attach="background" args={['#f8f8f8']} />
 
