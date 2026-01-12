@@ -5,9 +5,9 @@ import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, useHelper } from '@react-three/drei';
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
-// 假设路径正确，请根据实际情况调整
-import { clamp, VECTORS } from '../../_lib/coinConfig'; 
+import { clamp, VECTORS } from '../../_lib/coinConfig';
 import { useSensorData } from '../../_hooks/useSensorData';
+import { useFrustumWalls } from '../../_hooks/useFrustumWalls';
 
 interface SensorBoxProps {
   isEnabled: boolean;
@@ -18,35 +18,37 @@ interface SensorBoxProps {
 export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps) {
   const api = useRef<RapierRigidBody>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!);
-  
+
   // 获取原始数据
   const sensorData = useSensorData(isEnabled);
-  
+
   // 物理模拟参数
   const currentPos = useRef(new THREE.Vector3(0, 0, 0));
   const currentRot = useRef(new THREE.Quaternion());
 
-  // --- 新增：校准状态管理 ---
-  // 用于存储校准时的偏移量 (作为“零点”)
+  // --- 校准状态管理 ---
   const calibrationOffset = useRef({ beta: 0, gamma: 0 });
-  // 用于记录上一帧是否处于活跃状态 (用于检测状态跳变)
   const wasActive = useRef(false);
 
-  // --- 墙壁几何计算 (保持不变) ---
-  const CONFIG = {
-    camHeight: 10.5,
-    fov: 45,
-    baseHeight: 5,
-    wallThick: 10
+  // --- 相机配置 ---
+  // 可以自由修改这些值，墙壁会自动适应
+  const CAMERA_CONFIG = {
+    position: [0, 10.5, 0] as [number, number, number],     // 相机位置
+    rotation: [-Math.PI / 2, 0, 0] as [number, number, number], // 相机朝向 (俯视)
+    fov: 45,           // 视野角度
   };
-  
-  const halfFovRad = THREE.MathUtils.degToRad(CONFIG.fov / 2);
-  const tiltAngle = halfFovRad;
-  const frustumHalfSize = (CONFIG.camHeight - CONFIG.baseHeight) * Math.tan(halfFovRad);
-  const thicknessShiftX = (CONFIG.wallThick / 2) * Math.cos(tiltAngle);
-  const thicknessShiftY = (CONFIG.wallThick / 2) * Math.sin(tiltAngle);
-  const wallX = frustumHalfSize + thicknessShiftX;
-  const wallY = CONFIG.baseHeight + thicknessShiftY;
+
+  // --- 使用通用视锥体墙壁 Hook ---
+  const frustumWalls = useFrustumWalls({
+    cameraPosition: CAMERA_CONFIG.position,
+    cameraRotation: CAMERA_CONFIG.rotation,
+    fov: CAMERA_CONFIG.fov,
+    aspect: 1,           // 正方形视口
+    wallThickness: 10,   // 墙壁厚度
+    nearDistance: 1,     // 近平面距离
+    farDistance: 12,     // 远平面距离 (硬币活动区域)
+    wallMargin: 5,       // 额外边距
+  });
 
   // 调试辅助线
   useHelper(isDebugCamera ? cameraRef : null, THREE.CameraHelper);
@@ -136,20 +138,22 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
     <RigidBody ref={api} type="kinematicPosition" friction={0.5} colliders={false}>
       <PerspectiveCamera
         ref={cameraRef}
-        makeDefault={!isDebugCamera}
-        position={[0, 8, 10]}
-        rotation={[-Math.PI / 5, 0, 0]}
-        fov={CONFIG.fov}
+        position={CAMERA_CONFIG.position}
+        rotation={CAMERA_CONFIG.rotation}
+        fov={CAMERA_CONFIG.fov}
         far={30}
       />
 
-      <CuboidCollider args={[15, 5, 15]} position={[0, -6, 0]} />
-      <CuboidCollider args={[15, 5, 15]} position={[0, 9, 0]} />
-      <CuboidCollider args={[CONFIG.wallThick/2, 15, 15]} position={[wallX, wallY, 0]} rotation={[0, 0, tiltAngle]} />
-      <CuboidCollider args={[CONFIG.wallThick/2, 15, 15]} position={[-wallX, wallY, 0]} rotation={[0, 0, -tiltAngle]} />
-      <CuboidCollider args={[15, 15, CONFIG.wallThick/2]} position={[0, wallY, wallX]} rotation={[-tiltAngle, 0, 0]} />
-      <CuboidCollider args={[15, 15, CONFIG.wallThick/2]} position={[0, wallY, -wallX]} rotation={[tiltAngle, 0, 0]} />
-      
+      {/* 动态生成的视锥体墙壁 - 自动适应相机配置 */}
+      {frustumWalls.map((wall, index) => (
+        <CuboidCollider
+          key={index}
+          args={wall.args}
+          position={wall.position}
+          rotation={wall.rotation}
+        />
+      ))}
+
       <gridHelper args={[10, 6, 0xdddddd, 0xeeeeee]} position={[0, -0.9, 0]} />
     </RigidBody>
   );
