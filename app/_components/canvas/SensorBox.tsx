@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, useHelper } from '@react-three/drei';
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -19,6 +19,10 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
   const api = useRef<RapierRigidBody>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null!);
 
+  // 获取实际的视口宽高比
+  const { viewport } = useThree();
+  const aspect = viewport.width / viewport.height;
+
   // 获取原始数据
   const sensorData = useSensorData(isEnabled);
 
@@ -31,23 +35,34 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
   const wasActive = useRef(false);
 
   // --- 相机配置 ---
-  // 可以自由修改这些值，墙壁会自动适应
-  const CAMERA_CONFIG = {
-    position: [0, 10.5, 0] as [number, number, number],     // 相机位置
-    rotation: [-Math.PI / 2, 0, 0] as [number, number, number], // 相机朝向 (俯视)
-    fov: 45,           // 视野角度
-  };
+  const CAMERA_POSITION: [number, number, number] = [0, 8, 10];
+  const CAMERA_FOV = 45;
+
+  // 自动计算朝向原点的旋转（使用 Camera 而非 Object3D，因为相机看向 -Z）
+  const CAMERA_CONFIG = React.useMemo(() => {
+    const cam = new THREE.PerspectiveCamera();
+    cam.position.set(...CAMERA_POSITION);
+    cam.lookAt(0, 0, 0);
+    return {
+      position: CAMERA_POSITION,
+      rotation: [cam.rotation.x, cam.rotation.y, cam.rotation.z] as [number, number, number],
+      fov: CAMERA_FOV,
+    };
+  }, []);
 
   // --- 使用通用视锥体墙壁 Hook ---
   const frustumWalls = useFrustumWalls({
     cameraPosition: CAMERA_CONFIG.position,
     cameraRotation: CAMERA_CONFIG.rotation,
     fov: CAMERA_CONFIG.fov,
-    aspect: 1,           // 正方形视口
-    wallThickness: 10,   // 墙壁厚度
-    nearDistance: 1,     // 近平面距离
-    farDistance: 12,     // 远平面距离 (硬币活动区域)
-    wallMargin: 5,       // 额外边距
+    aspect: 1,
+    wallThickness: 10,
+    nearDistance: 1,
+    farDistance: 12,
+    wallMargin: 5,
+    keepNearFarHorizontal: true,
+    ceilingY: 5,   // 天花板 Y 坐标
+    floorY: -2,    // 地板 Y 坐标
   });
 
   // 调试辅助线
@@ -141,6 +156,7 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
         position={CAMERA_CONFIG.position}
         rotation={CAMERA_CONFIG.rotation}
         fov={CAMERA_CONFIG.fov}
+        makeDefault={!isDebugCamera}
         far={30}
       />
 
