@@ -35,8 +35,8 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
   const wasActive = useRef(false);
 
   // --- 相机配置 ---
-  const CAMERA_POSITION: [number, number, number] = [0, 8, 10];
-  const CAMERA_FOV = 45;
+  const CAMERA_POSITION: [number, number, number] = [0, 9, 6];
+  const CAMERA_FOV = 60;
 
   // 自动计算朝向原点的旋转（使用 Camera 而非 Object3D，因为相机看向 -Z）
   const CAMERA_CONFIG = React.useMemo(() => {
@@ -52,17 +52,14 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
 
   // --- 使用通用视锥体墙壁 Hook ---
   const frustumWalls = useFrustumWalls({
-    cameraPosition: CAMERA_CONFIG.position,
-    cameraRotation: CAMERA_CONFIG.rotation,
-    fov: CAMERA_CONFIG.fov,
-    aspect: 1,
-    wallThickness: 10,
-    nearDistance: 1,
-    farDistance: 12,
-    wallMargin: 5,
-    keepNearFarHorizontal: true,
-    ceilingY: 5,   // 天花板 Y 坐标
-    floorY: -2,    // 地板 Y 坐标
+    camera: CAMERA_CONFIG,
+    aspect,
+    near: 1,
+    far: 25,
+    thickness: 15,
+    margin: 25,
+    ceiling: 5,
+    floor: -1,
   });
 
   // 调试辅助线
@@ -170,7 +167,7 @@ export function SensorBox({ isEnabled, isDebugCamera, onShake }: SensorBoxProps)
         />
       ))}
 
-      <gridHelper args={[10, 6, 0xdddddd, 0xeeeeee]} position={[0, -0.9, 0]} />
+      <gridHelper args={[20, 12, 0xdddddd, 0xeeeeee]} position={[0, -0.9, 0]} />
     </RigidBody>
   );
 }
