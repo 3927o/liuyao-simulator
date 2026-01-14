@@ -10,7 +10,12 @@ import { useSensorPermission } from './_hooks/useSensorPermission';
 import { Coin } from './_components/canvas/Coin';
 import { SensorBox } from './_components/canvas/SensorBox';
 import { PermissionOverlay } from './_components/ui/PermissionOverlay';
-import { LiuYaoEngine, YaoValue, HexagramResult } from '../lib/LiuYaoEngine';
+import { YaoValue } from '../lib/LiuYaoEngine';
+
+// --- 常量配置 ---
+const SETTLE_DELAY = 500;      // 结算延迟
+const NAVIGATE_DELAY = 1000;   // 跳转延迟
+const NEXT_LINE_DELAY = 1500;  // 下一爻延迟
 
 // --- 辅助组件：显示当前爻的结果（紧凑版） ---
 function LineResultDisplay({ index, value }: { index: number, value: YaoValue }) {
@@ -39,8 +44,6 @@ export default function Home() {
   const [currentResults, setCurrentResults] = useState<Record<string, '阳' | '阴' | '侧立'>>({});
   const [resetSignal, setResetSignal] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
-  
-  const engine = useMemo(() => new LiuYaoEngine(), []);
 
   // 处理摇动开始
   const handleShake = useCallback(() => {
@@ -60,12 +63,11 @@ export default function Home() {
 
   // 检查本次投掷是否完成
   useEffect(() => {
-    // if (hexagram) return; // 已完成 (Moved to navigation logic)
     if (yaoList.length >= 6) return;
-    
+
     const coinIds = ['COIN-01', 'COIN-02', 'COIN-03'];
     const results = coinIds.map(id => currentResults[id]);
-    
+
     // 必须3个都有结果
     if (results.some(r => !r)) return;
 
@@ -74,27 +76,21 @@ export default function Home() {
       return;
     }
 
-    // 结算逻辑
+    // 结算逻辑：阳数直接映射到爻值
     const yangCount = results.filter(r => r === '阳').length;
-    let newLineValue: YaoValue | null = null;
+    const yaoValueMap: Record<number, YaoValue> = { 0: 6, 1: 7, 2: 8, 3: 9 };
+    const newLineValue = yaoValueMap[yangCount];
 
-    if (yangCount === 1) newLineValue = 7;
-    else if (yangCount === 2) newLineValue = 8;
-    else if (yangCount === 3) newLineValue = 9;
-    else if (yangCount === 0) newLineValue = 6;
-
-    if (newLineValue) {
-      // 稍微延迟一点记录，避免瞬间跳动
-      const timer = setTimeout(() => {
-        setYaoList(prev => {
-           if (prev.length >= 6) return prev;
-           return [...prev, newLineValue!];
-        });
-        // 准备下一轮：清空当前结果
-        setCurrentResults({});
-      }, 500);
-      return () => clearTimeout(timer);
-    }
+    // 稍微延迟一点记录，避免瞬间跳动
+    const timer = setTimeout(() => {
+      setYaoList(prev => {
+         if (prev.length >= 6) return prev;
+         return [...prev, newLineValue];
+      });
+      // 准备下一轮：清空当前结果
+      setCurrentResults({});
+    }, SETTLE_DELAY);
+    return () => clearTimeout(timer);
   }, [currentResults, yaoList.length]);
 
   // 监听爻满6个，跳转结果页
@@ -104,16 +100,16 @@ export default function Home() {
       // 延迟跳转，让用户看到最后一爻
       const timer = setTimeout(() => {
         router.push(`/result?lines=${linesStr}`);
-      }, 1000);
+      }, NAVIGATE_DELAY);
       return () => clearTimeout(timer);
     }
   }, [yaoList, router]);
 
   // 下一爻（重置硬币位置/状态）
-  const handleNextLine = () => {
+  const handleNextLine = useCallback(() => {
     setResetSignal(s => s + 1);
     setIsShaking(false);
-  };
+  }, []);
 
   // 自动进入下一爻：当检测到列表增加时，重置硬币
   useEffect(() => {
@@ -121,10 +117,10 @@ export default function Home() {
       // 给一点时间展示结果，然后重置硬币等待下一次摇动
       const timer = setTimeout(() => {
         handleNextLine();
-      }, 1500);
+      }, NEXT_LINE_DELAY);
       return () => clearTimeout(timer);
     }
-  }, [yaoList.length]);
+  }, [yaoList.length, handleNextLine]);
 
   const currentLineIndex = Math.min(yaoList.length + 1, 6);
   const isFinished = yaoList.length === 6;
