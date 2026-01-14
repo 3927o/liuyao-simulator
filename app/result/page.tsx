@@ -93,7 +93,7 @@ function DivinationContent() {
   const renderOrder = [5, 4, 3, 2, 1, 0];
 
   return (
-    <div className="min-h-screen w-full overflow-y-auto overflow-x-hidden bg-gray-50 text-gray-800 p-4 md:p-8">
+    <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-gray-50 text-gray-800 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* === Header === */}
