@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { RigidBody, CylinderCollider, RapierRigidBody } from '@react-three/rapier';
 import { CoinMesh } from './CoinMesh';
 import { VECTORS } from '../../_lib/coinConfig';
+import { useCoinCollision } from '../../_hooks/useCoinCollision';
 
 // --- 物理判定常量 ---
 const VELOCITY_THRESHOLD = 0.005;    // 线速度平方阈值
@@ -26,6 +27,7 @@ export function Coin({ position, id, onSettle, resetSignal }: CoinProps) {
   const [isSettled, setIsSettled] = useState(false);
   const bodyRef = useRef<RapierRigidBody>(null);
   const lastResetSignal = useRef(resetSignal);
+  const { handleCollision } = useCoinCollision();
 
   useFrame(() => {
     if (!bodyRef.current) return;
@@ -86,6 +88,7 @@ export function Coin({ position, id, onSettle, resetSignal }: CoinProps) {
       linearDamping={0.4}
       angularDamping={0.4}
       mass={50}
+      onCollisionEnter={handleCollision}
     >
       <CylinderCollider args={[0.04, 0.6]} />
       <CoinMesh />

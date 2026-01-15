@@ -2,10 +2,13 @@
 
 import React, { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
+import { COIN_CONFIG } from '../../_lib/sceneConfig';
 
 // --- 硬币尺寸常量 ---
 const COIN_RADIUS = 0.6;
 const COIN_THICKNESS = 0.08;
+
+const { colors, roughness, metalness } = COIN_CONFIG.material;
 
 /**
  * 简约现代风格硬币
@@ -13,13 +16,33 @@ const COIN_THICKNESS = 0.08;
  * 注意：物理 Y+ 朝上 = 阴，Y- 朝上 = 阳
  */
 export const CoinMesh = React.memo(() => {
-  // 哑光材质，无金属感
+  // 使用配置文件中的材质参数
   const materials = useMemo(() => ({
-    white: new THREE.MeshLambertMaterial({ color: "#ffffff" }),
-    black: new THREE.MeshLambertMaterial({ color: "#111111" }),
-    edge: new THREE.MeshLambertMaterial({ color: "#e0e0e0" }),
-    darkMark: new THREE.MeshLambertMaterial({ color: "#333333" }),
-    lightMark: new THREE.MeshLambertMaterial({ color: "#cccccc" }),
+    white: new THREE.MeshStandardMaterial({
+      color: colors.white,
+      roughness: roughness.white,
+      metalness: metalness.white,
+    }),
+    black: new THREE.MeshStandardMaterial({
+      color: colors.black,
+      roughness: roughness.black,
+      metalness: metalness.black,
+    }),
+    edge: new THREE.MeshStandardMaterial({
+      color: colors.edge,
+      roughness: roughness.edge,
+      metalness: metalness.edge,
+    }),
+    darkMark: new THREE.MeshStandardMaterial({
+      color: colors.darkMark,
+      roughness: roughness.mark,
+      metalness: metalness.mark,
+    }),
+    lightMark: new THREE.MeshStandardMaterial({
+      color: colors.lightMark,
+      roughness: roughness.mark,
+      metalness: metalness.mark,
+    }),
   }), []);
 
   // 组件卸载时清理材质，防止内存泄漏

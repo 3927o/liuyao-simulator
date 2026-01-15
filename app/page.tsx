@@ -11,6 +11,7 @@ import { Coin } from './_components/canvas/Coin';
 import { SensorBox } from './_components/canvas/SensorBox';
 import { PermissionOverlay } from './_components/ui/PermissionOverlay';
 import { YaoValue } from '../lib/LiuYaoEngine';
+import { LIGHT_CONFIG } from './_lib/sceneConfig';
 
 // --- 常量配置 ---
 const SETTLE_DELAY = 500;      // 结算延迟
@@ -193,7 +194,7 @@ export default function Home() {
         </div>
 
         {/* --- 3D Scene Layer --- */}
-        <Canvas dpr={[1, 2]} gl={{ antialias: true, toneMappingExposure: 1.2 }} className="md:rounded-3xl">
+        <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMappingExposure: 1.2 }} className="md:rounded-3xl">
           <Suspense fallback={null}>
             <color attach="background" args={['#f8f8f8']} />
 
@@ -206,9 +207,26 @@ export default function Home() {
               </group>
             </Environment>
 
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[10, 15, 10]} intensity={1.5} color="#ffffff" />
-            <pointLight position={[-5, 10, 5]} intensity={0.5} color="#ffffff" />
+            <ambientLight intensity={LIGHT_CONFIG.ambient.intensity} />
+            <directionalLight
+              position={LIGHT_CONFIG.directional.position}
+              intensity={LIGHT_CONFIG.directional.intensity}
+              color={LIGHT_CONFIG.directional.color}
+              castShadow
+              shadow-mapSize-width={LIGHT_CONFIG.shadow.mapSize}
+              shadow-mapSize-height={LIGHT_CONFIG.shadow.mapSize}
+              shadow-camera-far={LIGHT_CONFIG.shadow.cameraFar}
+              shadow-camera-left={-LIGHT_CONFIG.shadow.cameraSize}
+              shadow-camera-right={LIGHT_CONFIG.shadow.cameraSize}
+              shadow-camera-top={LIGHT_CONFIG.shadow.cameraSize}
+              shadow-camera-bottom={-LIGHT_CONFIG.shadow.cameraSize}
+              shadow-bias={LIGHT_CONFIG.shadow.bias}
+            />
+            <pointLight
+              position={LIGHT_CONFIG.point.position}
+              intensity={LIGHT_CONFIG.point.intensity}
+              color={LIGHT_CONFIG.point.color}
+            />
 
             {/* 调试相机 (俯视模式) */}
             {isDebugCamera && (
@@ -220,6 +238,11 @@ export default function Home() {
             )}
 
             <Physics gravity={[0, -50, 0]} timeStep={1 / 60} debug={false}>
+              {/* 接收阴影的地面 */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
+                <planeGeometry args={[30, 30]} />
+                <shadowMaterial opacity={LIGHT_CONFIG.shadow.opacity} />
+              </mesh>
               <SensorBox isEnabled={granted} isDebugCamera={isDebugCamera} onShake={handleShake} />
               <Coin id="COIN-01" position={[-1.2, 0.5, 0.2]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
               <Coin id="COIN-02" position={[0, 0.8, -0.5]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
