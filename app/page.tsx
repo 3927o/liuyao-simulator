@@ -88,8 +88,9 @@ export default function Home() {
          if (prev.length >= 6) return prev;
          return [...prev, newLineValue];
       });
-      // 准备下一轮：清空当前结果
+      // 准备下一轮：清空当前结果并立即"上膛"，等待下一次摇晃
       setCurrentResults({});
+      setIsShaking(false);
     }, SETTLE_DELAY);
     return () => clearTimeout(timer);
   }, [currentResults, yaoList.length]);
@@ -106,10 +107,9 @@ export default function Home() {
     }
   }, [yaoList, router]);
 
-  // 下一爻（重置硬币位置/状态）
+  // 下一爻：给硬币一个小冲量，防止侧立卡死
   const handleNextLine = useCallback(() => {
     setResetSignal(s => s + 1);
-    setIsShaking(false);
   }, []);
 
   // 自动进入下一爻：当检测到列表增加时，重置硬币

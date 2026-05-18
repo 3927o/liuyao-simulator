@@ -10,7 +10,7 @@ import { useCoinCollision } from '../../_hooks/useCoinCollision';
 // --- 物理判定常量 ---
 const VELOCITY_THRESHOLD = 0.005;    // 线速度平方阈值
 const ANGULAR_THRESHOLD = 0.03;      // 角速度平方阈值
-const FACE_DOT_THRESHOLD = 0.3;      // 面朝向判定阈值
+const FACE_DOT_THRESHOLD = 0.15;     // 面朝向判定阈值（越小越宽松，越不容易判为侧立）
 const RESET_IMPULSE = { x: 0.1, y: 0.2, z: 0.1 }; // 重置冲量范围
 
 interface CoinProps {
