@@ -1,14 +1,21 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import { LiuYaoEngine, YaoValue } from '@/lib/LiuYaoEngine';
 import { TimeBot } from '@/lib/TimeBot';
-import { ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
 
 // === 实例化工具类 ===
 const engine = new LiuYaoEngine();
 const timeBot = new TimeBot();
+
+interface InterpretStreamEvent {
+  summary?: string;
+  content?: string;
+}
 
 // === 辅助定义 ===
 const YAO_OPTIONS: { value: YaoValue; label: string; symbol: string }[] = [
@@ -75,6 +82,83 @@ function DivinationContent() {
     }
   }, [datePart, timePart, lines]);
 
+  // === AI 解卦状态 ===
+  const [question, setQuestion] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiText, setAiText] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiResponseKind, setAiResponseKind] = useState<'question' | 'diagnosis' | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const handleInterpret = async () => {
+    if (!result || aiLoading) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setAiLoading(true);
+    setAiSummary('');
+    setAiText('');
+    setAiError(null);
+    setAiResponseKind(question.trim() ? 'question' : 'diagnosis');
+
+    try {
+      const res = await fetch('/api/interpret', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          time: result.time,
+          hex: result.hex,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error((await res.text()) || `请求失败 (${res.status})`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split('\n');
+        buffer = done ? '' : (lines.pop() ?? '');
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as InterpretStreamEvent;
+          if (event.summary) setAiSummary(event.summary);
+          if (event.content) setAiText((prev) => prev + event.content);
+        }
+        if (done) break;
+      }
+    } catch (e) {
+      if (!controller.signal.aborted) {
+        setAiError(e instanceof Error ? e.message : '解卦失败，请稍后重试');
+      }
+    } finally {
+      if (abortRef.current === controller) {
+        setAiLoading(false);
+      }
+    }
+  };
+
+  // 卦象或时间变化后，旧的解卦结果不再适用
+  useEffect(() => {
+    abortRef.current?.abort();
+    setAiSummary('');
+    setAiText('');
+    setAiError(null);
+    setAiLoading(false);
+    setAiResponseKind(null);
+  }, [lines, datePart, timePart]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
   // 重置时间为当前
   const handleResetTime = () => {
     const { date, time } = getNowParts();
@@ -101,9 +185,9 @@ function DivinationContent() {
           <h1 className="text-xl font-semibold text-gray-800">
             六爻排盘
           </h1>
-          <a href="/" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+          <Link href="/" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
             重新起卦
-          </a>
+          </Link>
         </header>
 
         {/* === Input Section === */}
@@ -284,6 +368,90 @@ function DivinationContent() {
         ) : (
           <div className="text-center text-gray-400 py-16 bg-white rounded-2xl">
             等待数据输入...
+          </div>
+        )}
+
+        {/* === AI 解卦 === */}
+        {result && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> AI 解卦
+            </h2>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleInterpret()}
+                placeholder="所问何事（选填）：如 本月能否升职，留空则分析当前状态"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+              />
+              <button
+                onClick={handleInterpret}
+                disabled={aiLoading}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> 推演中
+                  </>
+                ) : (
+                  '起卦解读'
+                )}
+              </button>
+            </div>
+
+            {aiError && (
+              <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-4 py-3">
+                {aiError}
+              </div>
+            )}
+
+            {aiLoading && !aiSummary && !aiText && (
+              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-sm text-gray-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                正在分析世应关系与卦象结构…
+              </div>
+            )}
+
+            {(aiSummary || aiText) && (
+              <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/60 px-5 py-3">
+                  <span className="text-xs font-medium tracking-wide text-gray-500">
+                    {aiResponseKind === 'question' ? '针对所问之事' : '当前状态诊断'}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <span className={`h-1.5 w-1.5 rounded-full ${aiLoading ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`} />
+                    {aiLoading ? '生成中' : '已完成'}
+                  </span>
+                </div>
+
+                {aiSummary && (
+                  <div className="border-b border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50/40 px-5 py-5">
+                    <div className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-amber-700/70">一句话结论</div>
+                    <p className="text-base font-medium leading-7 text-gray-900">{aiSummary}</p>
+                  </div>
+                )}
+
+                <div
+                  className="px-5 py-5 text-sm leading-7 text-gray-600
+                    [&_h1]:mb-3 [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-gray-900
+                    [&_h2]:mb-3 [&_h2]:mt-7 [&_h2]:border-l-2 [&_h2]:border-gray-900 [&_h2]:pl-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2:first-child]:mt-0
+                    [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-gray-800
+                    [&_p]:my-2 [&_strong]:font-semibold [&_strong]:text-gray-900
+                    [&_ul]:my-3 [&_ul]:space-y-2 [&_ul]:pl-0
+                    [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5
+                    [&_ul_li]:list-none [&_ul_li]:border-l [&_ul_li]:border-gray-200 [&_ul_li]:pl-3"
+                >
+                  <ReactMarkdown>{aiText}</ReactMarkdown>
+                  {aiLoading && <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse align-middle bg-gray-400" />}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
