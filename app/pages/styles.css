@@ -13,6 +13,38 @@
   --acid-glow: rgba(216, 255, 20, 0.18);
 }
 
+/* ─── Theme overrides ────────────────────────────────────────────────
+   .obsidian-root 内声明的 --bg/--ink/--rule 是 obsidian（深蓝黑）默认。
+   Paper / Graphite 主题通过 html[data-theme=…] 挂在 documentElement 上，
+   同时 hit .obsidian-root 和 .obs-reader —— reader 通过 createPortal
+   挂在 body 下、.obsidian-root 之外，必须单独覆盖一次（跟 :root/--acid
+   的原因一样）。
+*/
+html[data-theme="paper"] .obsidian-root,
+html[data-theme="paper"] .obs-reader {
+  --bg:        #ffffff;
+  --bg-2:      #f7f7f7;
+  --bg-3:      #efefef;
+  --ink:       #171717;
+  --ink-2:     #565656;
+  --ink-3:     #9a9a9a;
+  --ink-4:     #c8c8c8;
+  --rule:      #e5e5e5;
+  --rule-2:    #d4d4d4;
+}
+html[data-theme="graphite"] .obsidian-root,
+html[data-theme="graphite"] .obs-reader {
+  --bg:        #111111;
+  --bg-2:      #181818;
+  --bg-3:      #1f1f1f;
+  --ink:       #ededed;
+  --ink-2:     #909090;
+  --ink-3:     #5a5a5a;
+  --ink-4:     #333333;
+  --rule:      #262626;
+  --rule-2:    #2f2f2f;
+}
+
 .obsidian-root {
   /* ── tokens (DESIGN-NOTES §2 / §3 / §4) ─────────────────────────── */
   --bg:        #0a0d12;
@@ -56,6 +88,9 @@ body.obsidian-active {
   overflow: visible;
   background: #0a0d12;
 }
+/* body 不在 .obsidian-root 里，拿不到里面的 --bg，只能按主题硬编码覆盖 */
+html[data-theme="paper"] body.obsidian-active    { background: #ffffff; }
+html[data-theme="graphite"] body.obsidian-active { background: #111111; }
 html.obsidian-active {
   height: 100%;
   overflow-x: hidden;
@@ -106,7 +141,7 @@ html.obsidian-active {
 }
 .obsidian-root .noise.tint {
   opacity: 0.04;
-  background-image: radial-gradient(rgba(216,255,20,0.7) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in oklab, var(--acid) 70%, transparent) 1px, transparent 1px);
   background-size: 7px 7px;
   background-position: 2px 1px;
 }
@@ -137,7 +172,7 @@ html.obsidian-active {
   z-index: 50;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  background: linear-gradient(180deg, rgba(10,13,18,0.92), rgba(10,13,18,0));
+  background: linear-gradient(180deg, color-mix(in oklab, var(--bg) 92%, transparent), color-mix(in oklab, var(--bg) 0%, transparent));
 }
 .obsidian-root .chrome-top .left {
   display: inline-flex; gap: 14px; align-items: center;
@@ -333,7 +368,7 @@ html.obsidian-active {
   position: absolute;
   width: 900px; height: 900px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(216,255,20,0.10) 0%, rgba(216,255,20,0.03) 35%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in oklab, var(--acid) 10%, transparent) 0%, color-mix(in oklab, var(--acid) 3%, transparent) 35%, transparent 70%);
   pointer-events: none;
   transform: translate(-50%, -50%);
   left: 50%; top: 50%;
@@ -670,7 +705,7 @@ html.obsidian-active {
   pointer-events: none;
   letter-spacing: -0.04em;
 }
-.obsidian-root .project.alt .roman { -webkit-text-stroke-color: rgba(216, 255, 20, 0.12); }
+.obsidian-root .project.alt .roman { -webkit-text-stroke-color: color-mix(in oklab, var(--acid) 12%, transparent); }
 
 .obsidian-root .project .p-head {
   position: relative;
@@ -880,7 +915,7 @@ html.obsidian-active {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink);
-  background: rgba(10,13,18,0.7);
+  background: color-mix(in oklab, var(--bg) 70%, transparent);
   backdrop-filter: blur(4px);
   padding: 6px 10px;
   border: 1px solid var(--rule-2);
@@ -1263,7 +1298,7 @@ html.obsidian-active {
   flex: 0 0 auto;
   padding: 14px 24px 18px;
   border-top: 1px dashed var(--rule);
-  background: linear-gradient(180deg, transparent, rgba(10,13,18,0.4));
+  background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--bg) 40%, transparent));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1301,7 +1336,7 @@ html.obsidian-active {
   transform: translateY(-1px);
 }
 .obsidian-root .rt-chip:hover {
-  background: rgba(216, 255, 20, 0.06);
+  background: color-mix(in oklab, var(--acid) 6%, transparent);
 }
 
 /* ── body / 阅读区 ─────────────────────────────────────────── */
@@ -1346,7 +1381,7 @@ html.obsidian-active {
 /* ── lead · 章节导读卡 ────────────────────────────────────── */
 .obsidian-root .rt-lead {
   border: 1px solid var(--rule-2);
-  background: linear-gradient(180deg, rgba(216,255,20,0.04), transparent 60%), var(--bg-2);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--acid) 4%, transparent), transparent 60%), var(--bg-2);
   padding: 18px 22px 20px;
   margin: 0 0 28px;
   position: relative;
@@ -1425,7 +1460,7 @@ html.obsidian-active {
   border-left: 2px solid var(--acid);
   padding: 8px 0 8px 16px;
   margin: -4px 0 22px 12px;
-  background: linear-gradient(90deg, rgba(216,255,20,0.04), transparent 80%);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--acid) 4%, transparent), transparent 80%);
 }
 .obsidian-root .rt-margin-body {
   display: block;
@@ -1436,7 +1471,7 @@ html.obsidian-active {
   font-size: 10px;
   letter-spacing: 0.16em;
   color: var(--acid);
-  background: rgba(216,255,20,0.08);
+  background: color-mix(in oklab, var(--acid) 8%, transparent);
   padding: 1px 6px;
   margin-right: 8px;
   text-transform: uppercase;
@@ -1725,7 +1760,7 @@ html.obsidian-active {
 .obsidian-root .coin-demo .desktop-prompt {
   position: absolute; inset: 0;
   z-index: 4;
-  background: linear-gradient(135deg, rgba(10,13,18,0.85), rgba(10,13,18,0.95));
+  background: linear-gradient(135deg, color-mix(in oklab, var(--bg) 85%, transparent), color-mix(in oklab, var(--bg) 95%, transparent));
   backdrop-filter: blur(6px);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -1780,7 +1815,7 @@ html.obsidian-active {
 .obsidian-root .coin-demo .perm-overlay {
   position: absolute; inset: 0;
   z-index: 4;
-  background: rgba(10,13,18,0.92);
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
   backdrop-filter: blur(4px);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -1842,7 +1877,7 @@ html.obsidian-active {
   letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--acid);
-  text-shadow: 0 0 18px rgba(216, 255, 20, 0.25);
+  text-shadow: 0 0 18px color-mix(in oklab, var(--acid) 25%, transparent);
 }
 .obsidian-root .shake-gate .shake-gate-cn {
   font-family: var(--serif-cn);
@@ -2604,7 +2639,7 @@ html.obsidian-active {
   font-size: clamp(220px, 30vw, 520px);
   line-height: 0.78;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(216, 255, 20, 0.12);
+  -webkit-text-stroke: 1.5px color-mix(in oklab, var(--acid) 12%, transparent);
   letter-spacing: -0.04em;
   user-select: none;
 }
@@ -2810,11 +2845,15 @@ html.obsidian-active {
 .obs-reader-curtain {
   position: fixed;
   left: 0; right: 0;
-  background: #000;
+  /* 幕帘 portal 到 body 外，不在 .obsidian-root/.obs-reader 里拿不到 --bg，
+     只能按主题硬编码覆盖（下方 html[data-theme] 规则） */
+  background: #0a0d12;
   z-index: 300;
   pointer-events: none;
   will-change: transform;
 }
+html[data-theme="paper"] .obs-reader-curtain    { background: #ffffff; }
+html[data-theme="graphite"] .obs-reader-curtain { background: #111111; }
 .obs-reader-curtain.top {
   top: 0; height: 50vh;
   transform: translateY(-101%);
@@ -2931,14 +2970,15 @@ body.curtain-in .obs-reader-curtain-label .lbl {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--rule-2, #232c3c);
-  background: rgba(10, 13, 18, 0.85);
+  /* 面板 bg 用 --bg + 透明混合，切主题自动跟随 */
+  background: color-mix(in oklab, var(--bg, #0a0d12) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   font-family: "IBM Plex Mono", monospace;
   font-size: 10.5px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: #8995a8;
+  color: var(--ink-2, #8995a8);
   max-width: 280px;
   transition: transform 0.3s cubic-bezier(.2,.7,.2,1), opacity 0.3s ease;
 }
@@ -2952,19 +2992,19 @@ body.curtain-in .obs-reader-curtain-label .lbl {
   cursor: pointer;
   user-select: none;
 }
-.obs-tweaks .hd b { color: #e8eef5; font-weight: 400; letter-spacing: 0.22em; }
+.obs-tweaks .hd b { color: var(--ink, #e8eef5); font-weight: 400; letter-spacing: 0.22em; }
 .obs-tweaks .hd .caret { color: var(--acid, #d8ff14); transition: transform 0.3s ease; }
 .obs-tweaks[data-open="1"] .hd .caret { transform: rotate(180deg); }
 .obs-tweaks .body {
   display: none;
   padding: 16px 14px;
-  gap: 10px;
+  gap: 14px;
   flex-direction: column;
 }
 .obs-tweaks[data-open="1"] .body { display: flex; }
 .obs-tweaks .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
-.obs-tweaks .row .lbl { font-size: 9.5px; color: #4a556b; }
-.obs-tweaks .row .name { font-size: 10.5px; color: #e8eef5; letter-spacing: 0.18em; }
+.obs-tweaks .row .lbl { font-size: 9.5px; color: var(--ink-3, #4a556b); }
+.obs-tweaks .row .name { font-size: 10.5px; color: var(--ink, #e8eef5); letter-spacing: 0.18em; }
 .obs-tweaks .swatches {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -2981,7 +3021,7 @@ body.curtain-in .obs-reader-curtain-label .lbl {
   position: relative;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
-.obs-tweaks .swatches button:hover { transform: translateY(-1px); border-color: #8995a8; }
+.obs-tweaks .swatches button:hover { transform: translateY(-1px); border-color: var(--ink-2, #8995a8); }
 .obs-tweaks .swatches button .dot {
   position: absolute;
   inset: 3px;
@@ -2989,9 +3029,44 @@ body.curtain-in .obs-reader-curtain-label .lbl {
   background: currentColor;
 }
 .obs-tweaks .swatches button[data-on="1"] {
-  border-color: #e8eef5;
-  box-shadow: 0 0 0 1px #e8eef5;
+  border-color: var(--ink, #e8eef5);
+  box-shadow: 0 0 0 1px var(--ink, #e8eef5);
 }
+
+/* THEME 行的 3 个大 chip（比 accent 小方块更"块"，让 THEME 一眼可辨） */
+.obs-tweaks .themes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.obs-tweaks .themes button {
+  appearance: none;
+  border: 1px solid var(--rule-2, #232c3c);
+  cursor: pointer;
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2, #8995a8);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.obs-tweaks .themes button:hover { transform: translateY(-1px); border-color: var(--ink-2, #8995a8); }
+.obs-tweaks .themes button[data-on="1"] {
+  border-color: var(--ink, #e8eef5);
+  color: var(--ink, #e8eef5);
+}
+/* 每个 chip 里画一个"底/字/线"三色迷你条，颜色由内联 style 传入 */
+.obs-tweaks .themes .chip-preview {
+  display: flex;
+  height: 22px;
+  border: 1px solid var(--rule-2, #232c3c);
+}
+.obs-tweaks .themes .chip-preview span { flex: 1; }
 
 /* ─── Tablet ─────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
@@ -3369,7 +3444,9 @@ body.curtain-in .obs-reader-curtain-label .lbl {
 }
 .fx-cinematic-flash .fx-flash-bg {
   position: absolute; inset: 0;
-  background: #000;
+  /* 用 --bg：obsidian → 深黑、paper → 白、graphite → 中性深灰。
+     film cut 语言对深/浅主题都成立（"cut to white" 也是极简经典手法）。 */
+  background: var(--bg);
 }
 .fx-cinematic-flash .fx-flash-card {
   position: absolute; inset: 0;
@@ -3406,7 +3483,8 @@ body.curtain-in .obs-reader-curtain-label .lbl {
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--acid);
-  text-shadow: 0 0 32px rgba(216, 255, 20, 0.45);
+  /* 从 --acid 派生 glow，跟随 accent 换色 */
+  text-shadow: 0 0 32px color-mix(in oklab, var(--acid) 45%, transparent);
 }
 .fx-cinematic-flash .fx-flash-cn {
   font-family: var(--serif-cn);
@@ -3544,7 +3622,7 @@ body.curtain-in .obs-reader-curtain-label .lbl {
 }
 .obsidian-root .interlude .il-index a:hover,
 .obsidian-root .interlude .il-index a:focus-visible {
-  background: rgba(216, 255, 20, 0.04);
+  background: color-mix(in oklab, var(--acid) 4%, transparent);
   padding-left: 18px;
   padding-right: 18px;
   outline: none;

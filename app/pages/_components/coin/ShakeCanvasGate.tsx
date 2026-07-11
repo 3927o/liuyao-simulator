@@ -46,6 +46,8 @@ interface Props {
   onCoinSettle: (id: string, result: '阳' | '阴' | '侧立') => void;
   onReset: () => void;
   yaoCount: number;
+  /** 透传 ShakeCanvas 的场景配色，v2 白底页用 daylight */
+  scene?: 'obsidian' | 'daylight';
 }
 
 export function ShakeCanvasGate({ yaoCount, ...canvasProps }: Props) {

@@ -19,6 +19,7 @@ import { IssueSpine } from './_components/IssueSpine';
 import { MobileEnhancements } from './_components/MobileEnhancements';
 import { SnapDriver } from './_components/SnapDriver';
 import { FxCinematicFlash } from './_components/FxCinematicFlash';
+import { TweaksPanel } from './_components/TweaksPanel';
 
 /**
  * 个人网站入口 /pages — 黑曜石 B-obsidian 设计的 React 实现。
@@ -71,6 +72,7 @@ export default function PersonalDispatchPage() {
 
       <SnapDriver />
       <FxCinematicFlash />
+      <TweaksPanel />
 
       {/* 移动端独占 —— CSS @media 控显隐 */}
       <IssueSpine />

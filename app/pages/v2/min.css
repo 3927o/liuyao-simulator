@@ -1,0 +1,824 @@
+/* ============================================================================
+ * /pages/v2 — 理性克制极简版（瑞士国际主义 / 文档式）
+ * 全部选择器 scope 在 .minv2 下，与 /pages 的 .obsidian-root 样式互不干扰。
+ * 原则：纯白底、近黑字、1px 细线、mono 标签、字重做强调、无动效。
+ * ========================================================================= */
+
+.minv2 {
+  --bg:     #ffffff;
+  --ink:    #171717;
+  --ink-2:  #565656;
+  --ink-3:  #9a9a9a;
+  --rule:   #e5e5e5;
+  --rule-2: #d4d4d4;
+
+  --col: 720px;
+  --col-wide: 1120px;
+
+  --sans: "IBM Plex Sans", "Noto Sans SC",
+          -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* mono 只覆盖拉丁/数字；中文落进 mono 语境时刻意回退到 Noto Sans SC，
+     而不是听凭浏览器兜底字体 */
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Noto Sans SC", monospace;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.95;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 根 globals.css 给 html/body 设了 overflow:hidden（摇卦 canvas 需要），
+   本路由挂载时放开 —— 与 /pages 的 .obsidian-active 同一件事，类名独立避免耦合 */
+html.minv2-active,
+body.minv2-active {
+  height: auto;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+/* ─── 导航 ────────────────────────────────────────────────────── */
+
+.minv2 .min-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule);
+}
+.minv2 .min-nav .inner {
+  max-width: var(--col);
+  margin-inline: auto;
+  padding-inline: 24px;
+  height: 52px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.minv2 .min-nav .brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+.minv2 .min-nav .links {
+  display: flex;
+  gap: 22px;
+  font-family: var(--mono);
+  font-size: 12px; /* 纯中文标签，10.5px 太小 */
+  letter-spacing: 0.18em;
+}
+.minv2 .min-nav .links a {
+  text-decoration: none;
+  color: var(--ink-3);
+}
+.minv2 .min-nav .links a:hover,
+.minv2 .min-nav .links a[data-on="1"] {
+  color: var(--ink);
+}
+
+/* 锚点跳转留出 sticky 栏高度 */
+.minv2 section, .minv2 header { scroll-margin-top: 60px; }
+
+/* ─── 通用 ────────────────────────────────────────────────────── */
+
+.minv2 .wrap {
+  max-width: var(--col);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+.minv2 .wrap-wide {
+  max-width: var(--col-wide);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* 节边界：2px 黑条，与正文栏左对齐、440px 收笔——右侧留白是气眼，
+   边界感靠"重"而不靠"封满" */
+.minv2 section {
+  padding: 0 0 112px;
+}
+.minv2 section::before {
+  content: "";
+  display: block;
+  height: 2px;
+  background: var(--ink);
+  width: min(440px, calc(100% - 48px));
+  margin-left: max(24px, calc((100% - var(--col)) / 2 + 24px));
+  margin-bottom: 72px;
+}
+
+/* mono 节标签：黑块编号 + EN + 中文 */
+.minv2 .sec-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 56px;
+}
+.minv2 .sec-label .num {
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 500;
+  padding: 3px 9px;
+  letter-spacing: 0.1em;
+}
+.minv2 .sec-label .cn {
+  font-size: 12px; /* 中文槽位，比拉丁标签大半级 */
+  letter-spacing: 0.4em;
+  margin-left: auto;
+  color: var(--ink-2);
+}
+
+/* 节大标题（02/05/06 这类没有自带大元素的节） */
+.minv2 .sec-label:has(+ .sec-title) { margin-bottom: 24px; }
+.minv2 .sec-title {
+  font-size: clamp(24px, 3.5vw, 30px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  margin: 0 0 48px;
+}
+/* 节小标题：紧贴 sec-title 下方的一行说明 */
+.minv2 .sec-title:has(+ .sec-sub) { margin-bottom: 12px; }
+.minv2 .sec-sub {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 0 0 48px;
+}
+
+.minv2 p { margin: 0 0 1.6em; }
+.minv2 p:last-child { margin-bottom: 0; }
+
+/* 强调 = 字重 + 下划线（Noto Sans 400/600 对比太弱，单靠字重立不住重点；
+   下划线在中西混排里都成立，且与斜体不同——CJK 假倾斜不克制） */
+.minv2 em {
+  font-style: normal;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink);
+}
+/* 静默强调：只加字重不带线。em 保留给真正 load-bearing 的短语 */
+.minv2 b, .minv2 strong { font-weight: 600; }
+.minv2 .opening .sub b,
+.minv2 .thought p b { color: var(--ink); }
+
+/* 大字号语句的折行交给浏览器均衡，避免「工程师」这类词被劈开 */
+.minv2 .opening h1,
+.minv2 .pull-quote,
+.minv2 .sec-title {
+  text-wrap: balance;
+}
+
+.minv2 a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule-2);
+}
+.minv2 a:hover { text-decoration-color: var(--ink); }
+
+/* ─── Opening · 刊头(左) × 信条(右) 对页 ─────────────────────── */
+
+.minv2 .opening {
+  border-top: none;
+  padding: 72px 0 112px;
+}
+.minv2 .op-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: clamp(48px, 6vw, 96px);
+  align-items: start;
+}
+.minv2 .opening .kicker {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 56px;
+}
+.minv2 .opening .kicker .strong { color: var(--ink); }
+.minv2 .opening h1 {
+  font-size: clamp(34px, 4.2vw, 54px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  margin: 0 0 32px;
+}
+.minv2 .opening .sub {
+  font-size: 16.5px;
+  line-height: 1.9;
+  color: var(--ink-2);
+  margin-bottom: 48px;
+}
+.minv2 .opening .sub em { color: var(--ink); }
+/* 右栏信条：小标签贴近内容，不用整节的 56px 间距 */
+.minv2 .op-right .sec-label { margin-bottom: 28px; }
+.minv2 .principles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+.minv2 .principles li {
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.minv2 .principles .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+/* ─── §02 Credo ──────────────────────────────────────────────── */
+
+/* 引语在右栏内，与左栏 h1 拉开一级——不做两个并排的最大字号 */
+.minv2 .pull-quote {
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin: 0 0 16px;
+}
+.minv2 .pull-attr {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 56px;
+}
+.minv2 .credo-body p.lead { font-size: 17.5px; }
+
+/* ─── §1 作品：章 + 子节的层级语法 ───────────────────────────────
+   章（1 作品）：节边界黑条 + 左对齐 sec-label —— 和 2/3/4/5 同级。
+   子节（1.1 读裁 / 1.2 起卦）：居中分组分隔线 + 两侧发丝线，
+   不带黑条 —— 读作章内的分隔，而非并列的节。 */
+
+.minv2 .works-note {
+  color: var(--ink-2);
+  max-width: 36em;
+  margin-bottom: 0; /* 章头到此为止，直接交给节的底部留白 */
+}
+
+.minv2 #p1::before,
+.minv2 #p2::before { display: none; }
+
+.minv2 .part-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 56px;
+}
+.minv2 .part-head::before,
+.minv2 .part-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+.minv2 .part-head .num {
+  color: var(--ink);
+  font-weight: 500;
+}
+.minv2 .part-head .cn {
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: var(--ink-2);
+}
+
+/* ─── 项目子节（§1.1 / §1.2）—— 标题职能由 part-head 分隔线承担 ── */
+
+/* 规格表：单字 key + 值 */
+.minv2 .specs {
+  border-top: 1px solid var(--ink);
+  margin: 48px 0 0;
+}
+.minv2 .specs .row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+/* key 与 letterhead 的 TO/FROM/RE 同一套体例（键小字距宽、灰、非粗），
+   中文 key 走 mono 栈的 Noto 回退，字号取中文标签的 12px */
+.minv2 .specs .row b {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--ink-3);
+  padding-top: 3px;
+}
+.minv2 .tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 20px;
+}
+.minv2 .tag-row .tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  padding: 4px 10px;
+  border: 1px solid var(--rule-2);
+  color: var(--ink-2);
+}
+.minv2 .tag-row .tag.hi {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.minv2 .demo-notice {
+  font-family: var(--mono);
+  font-size: 12px; /* 中文文案 */
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 64px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.minv2 .demo-notice::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ─── Demo 嵌入区：复用 /pages 的 .obsidian-root 样式，tokens 压成黑白。
+   特异性 (0,3,0) 盖过 html[data-theme] .obsidian-root 的 (0,2,1)，
+   防止从 /pages 客户端跳转过来时残留的 data-theme 污染。
+   --acid 声明在更近的元素上，天然盖过 TweaksPanel 写在 html 上的 inline 值。 */
+
+.minv2 .obsidian-root.obsidian-root {
+  --bg:        #ffffff;
+  --bg-2:      #f7f7f7;
+  --bg-3:      #efefef;
+  --ink:       #171717;
+  --ink-2:     #565656;
+  --ink-3:     #9a9a9a;
+  --ink-4:     #c8c8c8;
+  --rule:      #e5e5e5;
+  --rule-2:    #d4d4d4;
+  --acid:      #171717;
+  --acid-deep: #000000;
+  --acid-glow: rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Demo 布局（v2 专属）：两个 demo 都收回 720px 正文栏 ─────────
+   ReadTailor —— 单书舞台 + tab 点选切换（轨道横移）；
+   DestinyGuidance —— 上下两行：模拟器通栏，结果两栏。 */
+
+/* 书目 tab：编号 mono、书名 sans，选中态 = 黑字 + 2px 底线（同分节条语汇） */
+.minv2 .rt-switch {
+  display: flex;
+  flex-wrap: wrap; /* 四本书，窄屏折行 */
+  gap: 8px 28px;
+  margin-bottom: 20px;
+}
+.minv2 .rt-switch button {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.minv2 .rt-switch button .n {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-right: 8px;
+}
+.minv2 .rt-switch button:hover { color: var(--ink); }
+.minv2 .rt-switch button[data-on="1"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* 单书舞台：与正文栏同宽 */
+.minv2 .rt-stage {
+  width: 100%;
+  overflow: hidden;
+}
+/* 切换不做动画 —— 直接闪现 */
+.minv2 .rt-track {
+  display: flex;
+}
+.minv2 .rt-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+.minv2 .rt-slide > * { height: 580px; }
+
+/* DestinyGuidance：第一行模拟器通栏，第二行卦象 + AI 解读两栏。
+   特异性 (0,3,0)/(0,4,0) 盖过 styles.css 里含窄屏 MQ 在内的全部
+   visual-grid 规则——v2 的窄屏行为在下方 640 断点自己负责。 */
+.minv2 .obsidian-root .visual-grid {
+  margin-top: 0;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 440px 320px;
+  height: auto;
+}
+.minv2 .obsidian-root .visual-grid .cell.main {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+/* ─── §05 Thinking ───────────────────────────────────────────── */
+
+.minv2 .thought {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.minv2 .thought:first-of-type { border-top: 1px solid var(--ink); }
+.minv2 .thought .idx {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-top: 5px;
+}
+.minv2 .thought .t-h {
+  font-size: 17.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0;
+}
+.minv2 .thought .t-h button {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.minv2 .thought .t-h button:hover span:first-child {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+.minv2 .thought .t-h button > span:first-child { flex: 1; }
+.minv2 .thought .t-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+.minv2 .thought .t-toggle {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+/* 原地展开：grid-rows 0fr→1fr，内层 overflow:hidden 裁切 */
+.minv2 .thought .t-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+.minv2 .thought .t-body > div { overflow: hidden; min-height: 0; }
+.minv2 .thought[data-open="1"] .t-body { grid-template-rows: 1fr; }
+.minv2 .thought p {
+  color: var(--ink-2);
+  font-size: 15.5px;
+  margin: 12px 0 4px;
+}
+.minv2 .thought p em { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) {
+  .minv2 .thought .t-body { transition: none; }
+}
+
+/* ─── §06 Articles ───────────────────────────────────────────── */
+
+.minv2 .article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink);
+}
+.minv2 .article-list li { border-bottom: 1px solid var(--rule); }
+.minv2 .article-list button {
+  appearance: none;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
+  padding: 28px 0;
+}
+.minv2 .article-list .n {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-top: 5px;
+}
+.minv2 .article-list h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.minv2 .article-list button:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+.minv2 .article-list .excerpt {
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--ink-2);
+  margin: 0 0 12px;
+  max-width: 44em;
+}
+.minv2 .article-list .meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  gap: 24px;
+}
+
+/* ─── §06 工作方式 ───────────────────────────────────────────── */
+
+.minv2 .filter-block h3 {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 12px;
+  margin: 0 0 28px;
+}
+.minv2 .filter-block { margin-bottom: 72px; }
+.minv2 .filter-block:last-child { margin-bottom: 0; }
+.minv2 .filter-block ol {
+  margin: 0 0 1.6em;
+  padding: 0;
+  list-style: none;
+  counter-reset: fitem;
+}
+.minv2 .filter-block ol li {
+  counter-increment: fitem;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.minv2 .filter-block ol li::before {
+  content: counter(fitem, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-top: 4px;
+}
+.minv2 .filter-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.minv2 .filter-block ul li {
+  padding: 14px 0 14px 24px;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.minv2 .filter-block ul li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--ink-3);
+}
+
+/* ─── §07 联系 ───────────────────────────────────────────────── */
+
+.minv2 .end-signoff {
+  font-size: 18px;
+  margin: 0 0 48px;
+}
+.minv2 .letterhead {
+  border-top: 1px solid var(--ink);
+  max-width: 480px;
+}
+.minv2 .letterhead .row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+.minv2 .letterhead .k {
+  font-family: var(--mono);
+  font-size: 12px; /* 中文 key，与 specs 同档 */
+  letter-spacing: 0.2em;
+  color: var(--ink-3);
+  padding-top: 3px;
+}
+.minv2 .fin {
+  font-family: var(--mono);
+  font-size: 12px; /* 含中文 */
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 88px 0 64px;
+}
+
+/* ─── 极简 Reader ────────────────────────────────────────────── */
+
+.mr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #ffffff;
+  color: #171717;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-family: "IBM Plex Sans", "Noto Sans SC",
+               -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.95;
+}
+.mr-bar {
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e5e5e5;
+  z-index: 2;
+}
+.mr-bar-inner {
+  max-width: 680px;
+  margin-inline: auto;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: "IBM Plex Mono", ui-monospace, "Noto Sans SC", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+.mr-close {
+  appearance: none;
+  background: none;
+  border: 1px solid #d4d4d4;
+  font: inherit;
+  color: #171717;
+  padding: 6px 14px;
+  cursor: pointer;
+  letter-spacing: 0.2em;
+}
+.mr-close:hover { border-color: #171717; }
+.mr-body {
+  max-width: 680px;
+  margin-inline: auto;
+  padding: 64px 24px 128px;
+}
+.mr-body h1 {
+  font-size: clamp(26px, 5vw, 34px);
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 1.6em;
+}
+.mr-body h2 {
+  font-size: 19px;
+  font-weight: 600;
+  margin: 2.6em 0 1em;
+}
+.mr-body p { margin: 0 0 1.5em; }
+.mr-body em {
+  font-style: normal;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+.mr-body strong { font-weight: 600; }
+.mr-body blockquote {
+  margin: 2em 0;
+  padding-left: 20px;
+  border-left: 2px solid #171717;
+  color: #565656;
+}
+.mr-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2em 0;
+  font-size: 14.5px;
+}
+.mr-body th, .mr-body td {
+  border: 1px solid #e5e5e5;
+  padding: 8px 14px;
+  text-align: left;
+}
+.mr-body th {
+  font-family: "IBM Plex Mono", ui-monospace, "Noto Sans SC", monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #565656;
+}
+.mr-body pre {
+  margin: 2em 0;
+  padding: 16px 20px;
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.mr-body code {
+  font-family: "IBM Plex Mono", ui-monospace, "Noto Sans SC", monospace;
+}
+.mr-body p code, .mr-body li code {
+  font-size: 0.88em;
+  background: #f5f5f5;
+  padding: 1px 5px;
+}
+.mr-body ul, .mr-body ol { margin: 0 0 1.5em; padding-left: 1.4em; }
+.mr-body li { margin-bottom: 0.5em; }
+
+/* ─── 窄屏 ───────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .minv2 .op-grid { grid-template-columns: 1fr; gap: 72px; }
+}
+@media (max-width: 640px) {
+  .minv2 .min-nav .links { gap: 14px; letter-spacing: 0.1em; }
+  .minv2 section { padding: 0 0 80px; }
+  .minv2 section::before { width: min(280px, calc(100% - 48px)); margin-bottom: 56px; }
+  .minv2 .part-head { margin-bottom: 40px; }
+  .minv2 .opening { padding: 56px 0 72px; }
+  .minv2 .sec-label { flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+  .minv2 .sec-label .cn { margin-left: 0; width: 100%; }
+  .minv2 .thought { grid-template-columns: 1fr; gap: 6px; padding: 10px 0; }
+  .minv2 .article-list button { grid-template-columns: 1fr; gap: 8px; padding: 24px 0; }
+  .minv2 .rt-switch { gap: 20px; }
+  .minv2 .rt-slide > * { height: 520px; }
+  .minv2 .obsidian-root .visual-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 320px 240px 320px;
+  }
+  .minv2 .obsidian-root .visual-grid .cell.main { grid-column: 1; }
+}
+@media (max-width: 480px) {
+  .minv2 .min-nav .brand { display: none; }
+  .minv2 .min-nav .inner { justify-content: center; }
+}
