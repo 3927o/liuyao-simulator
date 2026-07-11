@@ -372,9 +372,27 @@ body.minv2-active {
 }
 .minv2 .demo-notice::after {
   content: "";
+  order: 1;
   flex: 1;
   height: 1px;
   background: var(--rule);
+}
+.minv2 .demo-notice > a {
+  order: 2;
+  flex: none;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-decoration-color: var(--ink);
+  white-space: nowrap;
+}
+.minv2 .demo-notice > a span {
+  display: inline-block;
+  margin-left: 2px;
+  transition: transform 0.15s ease;
+}
+.minv2 .demo-notice > a:hover span {
+  transform: translate(2px, -2px);
 }
 
 /* ─── Demo 嵌入区：复用 /pages 的 .obsidian-root 样式，tokens 压成黑白。

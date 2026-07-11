@@ -243,7 +243,17 @@ export default function MinimalDispatchPage() {
             <span className="tag hi">AI-POWERED</span>
           </div>
 
-          <div className="demo-notice">产品核心机制体验</div>
+          <div className="demo-notice">
+            <span>产品核心机制体验</span>
+            <a
+              href="https://liuyao-simulator.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="直接线上体验 DestinyGuidance（新窗口）"
+            >
+              直接线上体验 <span aria-hidden="true">↗</span>
+            </a>
+          </div>
         </div>
 
         <div className="wrap">
