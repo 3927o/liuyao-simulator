@@ -29,6 +29,9 @@ export function IntentionGuideOverlay({ onComplete }: IntentionGuideOverlayProps
         <p id="intention-guide-description" className="mx-auto mt-4 max-w-xs text-sm leading-7 text-gray-500">
           一次只问一件事，问题越具体，卦象越容易回应。无需说出口，保持这个念头，摇动六次即可。
         </p>
+        <p className="mt-4 hidden text-xs tracking-wide text-amber-700/70 [@media(pointer:fine)]:block">
+          请在移动设备上体验
+        </p>
 
         <div className="mt-9 text-sm text-gray-500">
           —— 点击开始起卦 ——
