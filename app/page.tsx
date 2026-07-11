@@ -1,8 +1,8 @@
 'use client';
 
-import React, { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { Suspense, useState, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { PerspectiveCamera, OrbitControls, Environment, Lightformer } from '@react-three/drei';
+import { Environment, Lightformer } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,7 @@ import { useSensorPermission } from './_hooks/useSensorPermission';
 import { Coin } from './_components/canvas/Coin';
 import { SensorBox } from './_components/canvas/SensorBox';
 import { PermissionOverlay } from './_components/ui/PermissionOverlay';
+import { IntentionGuideOverlay } from './_components/ui/IntentionGuideOverlay';
 import { YaoValue } from '../lib/LiuYaoEngine';
 import { LIGHT_CONFIG } from './_lib/sceneConfig';
 
@@ -19,7 +20,7 @@ const NAVIGATE_DELAY = 1000;   // 跳转延迟
 const NEXT_LINE_DELAY = 1500;  // 下一爻延迟
 
 // --- 辅助组件：显示当前爻的结果（紧凑版） ---
-function LineResultDisplay({ index, value }: { index: number, value: YaoValue }) {
+function LineResultDisplay({ value }: { value: YaoValue }) {
   let symbol = '';
   switch (value) {
     case 6: symbol = 'X'; break;
@@ -38,13 +39,18 @@ function LineResultDisplay({ index, value }: { index: number, value: YaoValue })
 export default function Home() {
   const router = useRouter();
   const { granted, showButton, requestPermission } = useSensorPermission();
-  const [isDebugCamera, setIsDebugCamera] = useState(false);
+  const [showIntentionGuide, setShowIntentionGuide] = useState(true);
   
   // --- 六爻逻辑状态 ---
   const [yaoList, setYaoList] = useState<YaoValue[]>([]);
   const [currentResults, setCurrentResults] = useState<Record<string, '阳' | '阴' | '侧立'>>({});
   const [resetSignal, setResetSignal] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
+
+  const handleGuideComplete = useCallback(async () => {
+    if (showButton) await requestPermission();
+    setShowIntentionGuide(false);
+  }, [requestPermission, showButton]);
 
   // 处理摇动开始
   const handleShake = useCallback(() => {
@@ -132,6 +138,7 @@ export default function Home() {
 
         {/* --- UI Layer --- */}
         {showButton && <PermissionOverlay onRequestPermission={requestPermission} />}
+        {showIntentionGuide && <IntentionGuideOverlay onComplete={handleGuideComplete} />}
 
         {/* 顶部：标题和进度 */}
         <div className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-sm">
@@ -139,16 +146,6 @@ export default function Home() {
             六爻起卦
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsDebugCamera(prev => !prev)}
-              className={`px-3 py-1 text-xs rounded-full transition-all ${
-                isDebugCamera
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              {isDebugCamera ? '上帝模式' : '调试'}
-            </button>
             <span className="text-xs text-gray-400">
               {currentLineIndex}/6
             </span>
@@ -172,7 +169,7 @@ export default function Home() {
               {/* 已完成的爻 */}
               <div className="flex items-center gap-2">
                 {yaoList.map((val, i) => (
-                  <LineResultDisplay key={i} index={i + 1} value={val} />
+                  <LineResultDisplay key={i} value={val} />
                 ))}
                 {/* 占位符显示剩余爻位 */}
                 {Array.from({ length: 6 - yaoList.length }).map((_, i) => (
@@ -228,22 +225,18 @@ export default function Home() {
               color={LIGHT_CONFIG.point.color}
             />
 
-            {/* 调试相机 (俯视模式) */}
-            {isDebugCamera && (
-              <>
-                <PerspectiveCamera makeDefault position={[0, 20, 30]} fov={50} onUpdate={(c) => c.lookAt(0, 0, 0)} />
-                <OrbitControls makeDefault />
-                <gridHelper args={[50, 50, '#ddd', '#eee']} position={[0, -10, 0]} />
-              </>
-            )}
-
-            <Physics gravity={[0, -50, 0]} timeStep={1 / 60} debug={false}>
+            <Physics
+              gravity={[0, -50, 0]}
+              timeStep={1 / 60}
+              debug={false}
+              paused={!granted || showIntentionGuide}
+            >
               {/* 接收阴影的地面 */}
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
                 <planeGeometry args={[30, 30]} />
                 <shadowMaterial opacity={LIGHT_CONFIG.shadow.opacity} />
               </mesh>
-              <SensorBox isEnabled={granted} isDebugCamera={isDebugCamera} onShake={handleShake} />
+              <SensorBox isEnabled={granted && !showIntentionGuide} isDebugCamera={false} onShake={handleShake} />
               <Coin id="COIN-01" position={[-1.2, 0.5, 0.2]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
               <Coin id="COIN-02" position={[0, 0.8, -0.5]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
               <Coin id="COIN-03" position={[1.2, 0.6, -0.1]} onSettle={handleCoinSettle} resetSignal={resetSignal} />
