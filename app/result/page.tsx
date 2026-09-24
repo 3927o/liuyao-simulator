@@ -317,6 +317,7 @@ function DivinationContent() {
               changedName={result.hex.changedName}
               lines={result.hex.lines}
               changedLines={result.hex.changedLines}
+              time={result.time}
             />
           </div>
         ) : (
