@@ -5,7 +5,7 @@
  */
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
-const MODEL = 'deepseek-v4-pro';
+const MODEL = 'deepseek-flash';
 
 // ==========================================
 // 请求体类型（与前端 LiuYaoEngine / TimeBot 输出对齐）
