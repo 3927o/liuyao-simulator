@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDays, GitBranch, MousePointer2 } from 'lucide-react
 import type { LineResult } from '@/lib/LiuYaoEngine';
 import type { TimeInfo } from '@/lib/TimeBot';
 import {
+  getChangedTimeRelationMarks,
   getLineRelationMarks,
   getReturnRelationMarks,
   getTimeRelationMarks,
@@ -114,6 +115,31 @@ function RelationBadge({ mark }: { mark: RelationMark }) {
   );
 }
 
+function RelationGroup({
+  label,
+  marks,
+  selected,
+}: {
+  label: string;
+  marks: RelationMark[];
+  selected: boolean;
+}) {
+  if (marks.length === 0) return null;
+
+  return (
+    <span className="flex w-full items-start gap-2">
+      <span className={`w-14 shrink-0 pt-1 text-[10px] ${selected ? 'text-white/55' : 'text-gray-400'}`}>
+        {label}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+        {marks.map((mark, index) => (
+          <RelationBadge key={`${mark.label}-${index}`} mark={mark} />
+        ))}
+      </span>
+    </span>
+  );
+}
+
 function LensToggle({
   active,
   label,
@@ -183,6 +209,10 @@ function RelationshipLens({
     () => lines.map((line) => getTimeRelationMarks(line, time)),
     [lines, time],
   );
+  const changedTimeMarks = useMemo(
+    () => lines.map((line, index) => getChangedTimeRelationMarks(line, changedLines[index], time)),
+    [lines, changedLines, time],
+  );
   const returnMarks = useMemo(
     () => lines.map((line, index) => getReturnRelationMarks(line, changedLines[index])),
     [lines, changedLines],
@@ -203,7 +233,7 @@ function RelationshipLens({
     }, new Map());
   }, [selectedRelations]);
 
-  const timeCount = timeMarks.reduce((sum, marks) => sum + marks.length, 0);
+  const timeCount = [...timeMarks, ...changedTimeMarks].reduce((sum, marks) => sum + marks.length, 0);
   const returnCount = returnMarks.reduce((sum, marks) => sum + marks.length, 0);
   const defaultSelected = Math.max(0, lines.findIndex((line) => line.isShi));
 
@@ -246,7 +276,7 @@ function RelationshipLens({
           />
           <LensToggle
             active={showReturn}
-            label="回头"
+            label="动变"
             count={returnCount}
             icon={<GitBranch className="h-3.5 w-3.5" />}
             disabled={returnCount === 0}
@@ -268,10 +298,9 @@ function RelationshipLens({
             const changed = changedLines[index];
             const isSelected = selectedIndex === index;
             const betweenMarks = showBetween ? (relationByTarget.get(index) ?? []) : [];
-            const visibleMarks = [
-              ...(showTime ? timeMarks[index] : []),
-              ...(showReturn ? returnMarks[index] : []),
-            ];
+            const hasVisibleMarks = (showTime && (timeMarks[index].length > 0 || changedTimeMarks[index].length > 0))
+              || (showReturn && returnMarks[index].length > 0)
+              || betweenMarks.length > 0;
 
             return (
               <button
@@ -280,11 +309,11 @@ function RelationshipLens({
                 aria-pressed={isSelected}
                 aria-label={`查看${lineTitle(index)}与其余各爻的关系`}
                 onClick={() => selectLine(index)}
-                className={`grid w-full grid-cols-[2.5rem_minmax(0,1fr)] gap-2 rounded-xl border px-3 py-3 text-left transition-all sm:grid-cols-[3rem_12rem_minmax(0,1fr)] sm:items-center sm:px-4 ${
+                className={`grid w-full grid-cols-[2.5rem_minmax(0,1fr)] gap-2 rounded-xl border px-3 py-3 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 sm:grid-cols-[3rem_12rem_minmax(0,1fr)] sm:items-center sm:px-4 ${
                   isSelected
                     ? 'border-gray-800 bg-gray-900 text-white shadow-sm'
                     : betweenMarks.length > 0
-                      ? 'border-rose-200 bg-rose-50/40'
+                      ? 'border-gray-200 bg-gray-50/70'
                       : 'border-transparent hover:border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -313,20 +342,17 @@ function RelationshipLens({
                       <span className={isSelected ? 'text-white/80' : elementColor(changed.wuXing)}>{changed.zhi}{changed.wuXing}</span>
                     </span>
                   )}
+                  {isSelected && (
+                    <span className="mt-1.5 block text-[10px] text-white/55">已选中 · 再点一次收起</span>
+                  )}
                 </span>
 
-                <span className="col-start-2 flex min-w-0 flex-wrap items-center gap-1.5 sm:col-start-3">
-                  {isSelected ? (
-                    <span className="text-[11px] text-white/55">已选中 · 再点一次收起</span>
-                  ) : betweenMarks.length > 0 ? (
-                    betweenMarks.map((mark, markIndex) => (
-                      <RelationBadge key={`between-${mark.label}-${markIndex}`} mark={mark} />
-                    ))
-                  ) : visibleMarks.length > 0 ? (
-                    visibleMarks.map((mark, markIndex) => (
-                      <RelationBadge key={`${mark.label}-${markIndex}`} mark={mark} />
-                    ))
-                  ) : (
+                <span className="col-start-2 flex min-w-0 flex-col gap-2 sm:col-start-3">
+                  {showTime && <RelationGroup label="本爻天时" marks={timeMarks[index]} selected={isSelected} />}
+                  {showReturn && <RelationGroup label="动变" marks={returnMarks[index]} selected={isSelected} />}
+                  {showTime && <RelationGroup label="变爻天时" marks={changedTimeMarks[index]} selected={isSelected} />}
+                  {showBetween && <RelationGroup label="与选中爻" marks={betweenMarks} selected={isSelected} />}
+                  {!hasVisibleMarks && (
                     <span className="text-[11px] text-gray-300">—</span>
                   )}
                 </span>
@@ -343,24 +369,29 @@ function RelationshipLens({
                   {lineTitle(selectedIndex)} {lines[selectedIndex].zhi}{lines[selectedIndex].wuXing}
                 </span>
                 <span className="mx-1.5 text-gray-300">/</span>
-                与其余五爻的刑、冲、克、害
+                以此爻为参照，查看生克、合冲刑害
               </p>
               {selectedRelations.length === 0 && (
-                <span className="text-[11px] text-gray-400">未见直接作用</span>
+                <span className="text-[11px] text-gray-400">未见基础关系</span>
               )}
             </div>
             {selectedRelations.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {Array.from(relationByTarget.entries()).map(([targetIndex, marks]) => (
-                  <span key={targetIndex} className="inline-flex items-center gap-1 rounded-lg border border-white bg-white px-2.5 py-1.5 text-[11px] text-gray-500 shadow-sm">
-                    <span>{lineTitle(targetIndex)} {lines[targetIndex].zhi}{lines[targetIndex].wuXing}</span>
-                    <span className="text-gray-300">·</span>
-                    <span className="font-semibold text-rose-600">{marks.map((mark) => mark.label).join('、')}</span>
-                  </span>
+                  <div key={targetIndex} className="flex flex-wrap items-center gap-1.5 rounded-lg border border-white bg-white px-2.5 py-1.5 text-[11px] text-gray-500 shadow-sm">
+                    <span className="mr-1">→ {lineTitle(targetIndex)} {lines[targetIndex].zhi}{lines[targetIndex].wuXing}</span>
+                    {marks.map((mark, index) => <RelationBadge key={`${mark.label}-${index}`} mark={mark} />)}
+                  </div>
                 ))}
               </div>
             )}
           </div>
+        )}
+
+        {showBetween && selectedIndex !== null && (
+          <p className="mt-2 px-1 text-[10px] leading-relaxed text-gray-400">
+            生、克表示选中爻对目标爻的关系；受生、受克表示目标爻对选中爻的关系。
+          </p>
         )}
 
         {!showBetween && (
@@ -370,16 +401,24 @@ function RelationshipLens({
             className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-200 py-2.5 text-[11px] text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
           >
             <MousePointer2 className="h-3.5 w-3.5" />
-            点选任一爻，查看它与其余五爻的作用关系
+            点选任一爻，查看它与其余五爻的基础关系
           </button>
         )}
 
         <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[10px] text-gray-400">
-          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-rose-400" />强作用</span>
-          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />扶助 / 相合</span>
-          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />牵制 / 消耗</span>
+          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-rose-400" />冲克 / 月破</span>
+          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />生扶 / 相合</span>
+          <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />刑害 / 泄耗 / 墓绝</span>
           <span><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-gray-300" />旬空 / 伏吟</span>
         </div>
+
+        <details className="mt-3 rounded-lg border border-gray-100 px-3 py-2 text-[10px] leading-relaxed text-gray-400">
+          <summary className="cursor-pointer">标注口径</summary>
+          <p className="mt-2">
+            这里展示基础配对关系，颜色不代表吉凶，实际效力需结合动静、旺衰判断。
+            动变中的生旺墓绝按水土同宫表标注；日冲暂不细分暗动、日破，三合成局需另作综合判断。
+          </p>
+        </details>
       </div>
     </section>
   );

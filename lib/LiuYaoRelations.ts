@@ -14,6 +14,8 @@ export interface LineRelationMark extends RelationMark {
 }
 
 type BranchRelation = '合' | '冲' | '刑' | '害';
+type ElementRelation = '生' | '受生' | '克' | '受克' | '比和';
+type LifeStage = '长生' | '帝旺' | '墓' | '绝';
 
 const BRANCH_ELEMENT: Record<DiZhi, WuXing> = {
   子: '水',
@@ -59,6 +61,30 @@ const CONTROLS: Record<WuXing, WuXing> = {
   水: '火',
   火: '金',
 };
+
+// 六爻常用进退神表；退神取同一组配对的反向，不能只按地支相邻判断。
+const ADVANCING_PAIRS: readonly (readonly [DiZhi, DiZhi])[] = [
+  ['亥', '子'], ['寅', '卯'], ['巳', '午'], ['申', '酉'],
+  ['丑', '辰'], ['辰', '未'], ['未', '戌'], ['戌', '丑'],
+];
+
+// 采用《增删卜易》的生旺墓绝表（水土同宫），不套用八字阴阳顺逆长生。
+// 这里只标注位置关系；是否实际生、墓、绝仍须结合旺衰及生克判断。
+const LIFE_STAGES: Record<WuXing, Record<LifeStage, DiZhi>> = {
+  金: { 长生: '巳', 帝旺: '酉', 墓: '丑', 绝: '寅' },
+  木: { 长生: '亥', 帝旺: '卯', 墓: '未', 绝: '申' },
+  水: { 长生: '申', 帝旺: '子', 墓: '辰', 绝: '巳' },
+  火: { 长生: '寅', 帝旺: '午', 墓: '戌', 绝: '亥' },
+  土: { 长生: '申', 帝旺: '子', 墓: '辰', 绝: '巳' },
+};
+
+function getElementRelation(source: WuXing, target: WuXing): ElementRelation {
+  if (GENERATES[source] === target) return '生';
+  if (GENERATES[target] === source) return '受生';
+  if (CONTROLS[source] === target) return '克';
+  if (CONTROLS[target] === source) return '受克';
+  return '比和';
+}
 
 function hasPair(pairs: string[], a: DiZhi, b: DiZhi) {
   return pairs.some((pair) => pair.includes(a) && pair.includes(b));
@@ -114,18 +140,24 @@ function describeSeasonalRelation(
   }
 
   const sourceElement = BRANCH_ELEMENT[sourceBranch];
-  if (CONTROLS[sourceElement] === line.wuXing) {
-    marks.push({
-      label: `${prefix}克`,
-      detail: `${sourceLabel}${sourceBranch}${sourceElement}克${line.zhi}${line.wuXing}`,
-      tone: 'strong',
-    });
-  } else if (CONTROLS[line.wuXing] === sourceElement) {
-    marks.push({
-      label: `克${prefix}`,
-      detail: `${line.zhi}${line.wuXing}克${sourceLabel}${sourceBranch}${sourceElement}`,
+  const elementRelation = getElementRelation(sourceElement, line.wuXing);
+  const source = `${sourceLabel}${sourceBranch}${sourceElement}`;
+  const target = `${line.zhi}${line.wuXing}爻`;
+  const elementMarks: Record<ElementRelation, RelationMark> = {
+    生: { label: `${prefix}生`, detail: `${source}生${target}`, tone: 'support' },
+    受生: { label: `${prefix}泄`, detail: `${target}生${source}，爻气外泄`, tone: 'warning' },
+    克: { label: `${prefix}克`, detail: `${source}克${target}`, tone: 'strong' },
+    受克: {
+      label: `${prefix}耗`,
+      detail: `${target}与${source}为爻克日月五行的耗气关系，并非爻能制克日月`,
       tone: 'warning',
-    });
+    },
+    比和: { label: `${prefix}扶`, detail: `${source}与${target}同五行，比和扶助`, tone: 'support' },
+  };
+
+  // 同支已经标为临日/月，避免再重复显示同五行扶助。
+  if (sourceBranch !== line.zhi) {
+    marks.push(elementMarks[elementRelation]);
   }
 
   return marks;
@@ -148,6 +180,28 @@ export function getTimeRelationMarks(line: LineResult, time: TimeInfo): Relation
   return marks;
 }
 
+export function getChangedTimeRelationMarks(
+  original: LineResult,
+  changed: LineResult,
+  time: TimeInfo,
+): RelationMark[] {
+  // 变卦的静爻也会重新纳甲，但只有实际动爻才有对应的化爻。
+  if (!original.isMoving) return [];
+
+  const changedLabels: Record<string, string> = {
+    旬空: '化空',
+    月破: '化月破',
+    临月建: '化月建',
+    临日辰: '化日辰',
+  };
+
+  return getTimeRelationMarks(changed, time).map((mark) => ({
+    ...mark,
+    label: changedLabels[mark.label] ?? mark.label,
+    detail: `变爻${changed.zhi}${changed.wuXing}：${mark.detail}`,
+  }));
+}
+
 export function getReturnRelationMarks(
   original: LineResult,
   changed: LineResult,
@@ -161,6 +215,30 @@ export function getReturnRelationMarks(
       label: '化伏吟',
       detail: `${original.zhi}动而仍化${changed.zhi}`,
       tone: 'muted',
+    });
+  }
+
+  if (ADVANCING_PAIRS.some(([from, to]) => from === original.zhi && to === changed.zhi)) {
+    marks.push({
+      label: '化进神',
+      detail: `${original.zhi}动化${changed.zhi}，属于进神配对；是否能进需结合空破、旺衰`,
+      tone: 'support',
+    });
+  } else if (ADVANCING_PAIRS.some(([from, to]) => to === original.zhi && from === changed.zhi)) {
+    marks.push({
+      label: '化退神',
+      detail: `${original.zhi}动化${changed.zhi}，属于退神配对；是否实际退需结合空破、旺衰`,
+      tone: 'warning',
+    });
+  }
+
+  const stage = (Object.keys(LIFE_STAGES[original.wuXing]) as LifeStage[])
+    .find((key) => LIFE_STAGES[original.wuXing][key] === changed.zhi);
+  if (stage) {
+    marks.push({
+      label: `化${stage}`,
+      detail: `${original.zhi}${original.wuXing}动化${changed.zhi}，按生旺墓绝表，${original.wuXing}的${stage}位在${changed.zhi}（水土同宫）；实际效力需结合旺衰、生克`,
+      tone: stage === '长生' || stage === '帝旺' ? 'support' : 'warning',
     });
   }
 
@@ -214,30 +292,25 @@ export function getLineRelationMarks(
   const marks: LineRelationMark[] = [];
 
   for (const relation of getBranchRelations(source.zhi, target.zhi)) {
-    if (relation === '合') continue;
     marks.push({
       targetIndex: target.index - 1,
       label: relation,
       detail: `${source.zhi}与${target.zhi}相${relation}`,
-      tone: relation === '冲' ? 'strong' : 'warning',
+      tone: relation === '合' ? 'support' : relation === '冲' ? 'strong' : 'warning',
     });
   }
 
-  if (CONTROLS[source.wuXing] === target.wuXing) {
-    marks.push({
-      targetIndex: target.index - 1,
-      label: '克',
-      detail: `${source.zhi}${source.wuXing}克${target.zhi}${target.wuXing}`,
-      tone: 'strong',
-    });
-  } else if (CONTROLS[target.wuXing] === source.wuXing) {
-    marks.push({
-      targetIndex: target.index - 1,
-      label: '受克',
-      detail: `${source.zhi}${source.wuXing}受${target.zhi}${target.wuXing}所克`,
-      tone: 'strong',
-    });
-  }
+  const relation = getElementRelation(source.wuXing, target.wuXing);
+  const sourceName = `${source.zhi}${source.wuXing}`;
+  const targetName = `${target.zhi}${target.wuXing}`;
+  const elementMarks: Record<ElementRelation, RelationMark> = {
+    生: { label: '生', detail: `选中爻${sourceName}生目标爻${targetName}`, tone: 'support' },
+    受生: { label: '受生', detail: `目标爻${targetName}生选中爻${sourceName}`, tone: 'support' },
+    克: { label: '克', detail: `选中爻${sourceName}克目标爻${targetName}`, tone: 'strong' },
+    受克: { label: '受克', detail: `目标爻${targetName}克选中爻${sourceName}`, tone: 'strong' },
+    比和: { label: '比和', detail: `选中爻${sourceName}与目标爻${targetName}同五行`, tone: 'support' },
+  };
+  marks.push({ ...elementMarks[relation], targetIndex: target.index - 1 });
 
   return marks;
 }
