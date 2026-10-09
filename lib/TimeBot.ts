@@ -4,7 +4,8 @@
  * 功能：基于 lunar-javascript 计算干支、空亡、神煞
  */
 
-import { Solar, Lunar } from 'lunar-typescript';
+import { Solar } from 'lunar-typescript';
+import { solarFromParts } from './calendar';
 import { TianGan, DiZhi } from './LiuYaoEngine'; // 引用之前的类型定义
 
 // 神煞结果接口
@@ -43,6 +44,14 @@ export class TimeBot {
    */
   public getTime(date: Date = new Date()): TimeInfo {
     const solar = Solar.fromDate(date);
+    return this.fromSolar(solar, date);
+  }
+
+  public getTimeForParts(datePart: string, timePart: string): TimeInfo {
+    return this.fromSolar(solarFromParts(datePart, timePart), new Date(`${datePart}T${timePart}:00+08:00`));
+  }
+
+  private fromSolar(solar: Solar, date: Date): TimeInfo {
     const lunar = solar.getLunar();
 
     // 1. 获取干支

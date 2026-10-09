@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ModuleNav } from './ModuleNav';
 
 interface PermissionOverlayProps {
   onRequestPermission: () => void;
@@ -12,6 +13,7 @@ interface PermissionOverlayProps {
 export function PermissionOverlay({ onRequestPermission }: PermissionOverlayProps) {
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+      <div className="absolute top-4 left-4"><ModuleNav active="liuyao" /></div>
       <div className="text-center space-y-6">
         <div className="text-gray-400 text-sm">需要传感器权限以开始摇卦</div>
         <button

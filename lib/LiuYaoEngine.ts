@@ -66,7 +66,7 @@ const WUXING_MAP: Record<DiZhi, WuXing> = {
   '辰': '土', '戌': '土', '丑': '土', '未': '土', '申': '金', '酉': '金'
 };
 
-const BAGUA_WUXING: Record<BaguaName, WuXing> = {
+export const BAGUA_WUXING: Record<BaguaName, WuXing> = {
   '乾': '金', '兑': '金', '离': '火', '震': '木', '巽': '木', '坎': '水', '艮': '土', '坤': '土'
 };
 
@@ -104,7 +104,7 @@ const LIU_SHEN_START: Record<string, number> = {
 
 // 64卦名表 (Key: 上卦+下卦)
 // Value 格式通常为：[上卦自然象][下卦自然象][卦名]，纯卦为 [卦名]为[自然象]
-const HEXAGRAM_NAMES: Record<string, string> = {
+export const HEXAGRAM_NAMES: Record<string, string> = {
   // --- 上卦：乾 (天) ---
   '乾乾': '乾为天',
   '乾兑': '天泽履',

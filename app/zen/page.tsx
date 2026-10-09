@@ -12,6 +12,10 @@ import * as THREE from 'three';
 
 import { audioManager } from './AudioManager';
 import { YaoValue, resolveHexagram, calculateYao } from './IChingLogic';
+import Link from 'next/link';
+import { getNowParts } from '@/lib/calendar';
+import { saveHistory, historyHref } from '@/lib/divinationHistory';
+import { ModuleNav } from '../_components/ui/ModuleNav';
 
 // --- 类型定义 ---
 // 新增 SPINNING 状态，让出结果的过程更有悬念
@@ -31,13 +35,17 @@ const UIOverlay = ({
     energy,
     lines, // 已经摇出的爻 (最多6个)
     currentResult, // 当前这一次摇出的硬币结果 (用于动画展示)
-    onReset
+    onReset,
+    resultHref,
+    historyError
 }: {
     gameState: GameState,
     energy: number,
     lines: YaoValue[],
     currentResult: number[] | null,
-    onReset: () => void
+    onReset: () => void,
+    resultHref: string,
+    historyError: string
 }) => {
 
     const isFinished = lines.length === 6 && gameState !== 'CHARGING' && gameState !== 'SPINNING';
@@ -120,6 +128,8 @@ const UIOverlay = ({
                     {finalHexagram.hasMovingLine && (
                         <p style={{ color: '#ff0055', marginTop: '20px', fontSize: '12px' }}>检测到变爻，未来可能产生变卦。</p>
                     )}
+                    {historyError && <p role="alert" className="mt-4 text-xs text-rose-400">{historyError}</p>}
+                    <Link href={resultHref} className="mt-5 block text-sm text-cyan-300">查看排盘与 AI 解读 →</Link>
                     <button
                         onClick={onReset}
                         style={{
@@ -311,6 +321,8 @@ export default function ZenDivinationApp() {
   
   // 核心数据：记录六爻的结果数组 (0-5, 从初爻到上爻)
   const [lines, setLines] = useState<YaoValue[]>([]); 
+  const [resultHref, setResultHref] = useState('/result');
+  const [historyError, setHistoryError] = useState('');
   
   // 视觉数据：当前这一扔的 3 枚铜钱状态 (0=阴/背, 1=阳/字)
   const [currentCoinResult, setCurrentCoinResult] = useState<[0|1, 0|1, 0|1] | null>(null);
@@ -425,6 +437,17 @@ export default function ZenDivinationApp() {
       
       // 3. 命理算法：计算本爻的值 (6/7/8/9)
       const yaoValue = calculateYao(coins);
+      const completed = [...lines, yaoValue];
+      if (completed.length === 6) {
+        const { date, time } = getNowParts();
+        try {
+          const record = saveHistory({ module: 'liuyao', lines: completed, datePart: date, timePart: time });
+          setResultHref(historyHref(record));
+        } catch (error) {
+          setHistoryError(error instanceof Error ? error.message : '保存失败');
+          setResultHref(`/result?${new URLSearchParams({ lines: completed.join(','), date, time, unsaved: '1' })}`);
+        }
+      }
       
       // 4. 将结果推入数组 (堆叠 UI 会自动更新)
       setLines((prev) => [...prev, yaoValue]);
@@ -450,6 +473,8 @@ export default function ZenDivinationApp() {
     setGameState('IDLE');
     setEnergy(0);
     setCurrentCoinResult(null);
+    setHistoryError('');
+    setResultHref('/result');
   };
 
   return (
@@ -465,12 +490,15 @@ export default function ZenDivinationApp() {
       onContextMenu={(e) => e.preventDefault()} // 禁止右键菜单干扰
     >
       {/* UI 层：传递 lines 数组用于渲染堆叠动画 */}
+      <div className="absolute left-4 top-14 z-20" onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()}><ModuleNav active="liuyao" /></div>
       <UIOverlay 
         gameState={gameState} 
         energy={energy} 
         lines={lines} 
         currentResult={currentCoinResult}
         onReset={resetGame}
+        resultHref={resultHref}
+        historyError={historyError}
       />
       
       {/* 3D 层 */}

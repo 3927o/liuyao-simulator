@@ -13,6 +13,9 @@ import { PermissionOverlay } from './_components/ui/PermissionOverlay';
 import { IntentionGuideOverlay } from './_components/ui/IntentionGuideOverlay';
 import { YaoValue } from '../lib/LiuYaoEngine';
 import { LIGHT_CONFIG } from './_lib/sceneConfig';
+import { ModuleNav } from './_components/ui/ModuleNav';
+import { getNowParts } from '@/lib/calendar';
+import { saveHistory, historyHref } from '@/lib/divinationHistory';
 
 // --- 常量配置 ---
 const SETTLE_DELAY = 500;      // 结算延迟
@@ -104,10 +107,16 @@ export default function Home() {
   // 监听爻满6个，跳转结果页
   useEffect(() => {
     if (yaoList.length === 6) {
-      const linesStr = yaoList.join(',');
       // 延迟跳转，让用户看到最后一爻
       const timer = setTimeout(() => {
-        router.push(`/result?lines=${linesStr}`);
+        const { date, time } = getNowParts();
+        try {
+          const record = saveHistory({ module: 'liuyao', lines: yaoList, datePart: date, timePart: time });
+          router.push(historyHref(record));
+        } catch {
+          const params = new URLSearchParams({ lines: yaoList.join(','), date, time, unsaved: '1' });
+          router.push(`/result?${params}`);
+        }
       }, NAVIGATE_DELAY);
       return () => clearTimeout(timer);
     }
@@ -142,9 +151,7 @@ export default function Home() {
 
         {/* 顶部：标题和进度 */}
         <div className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-sm">
-          <div className="text-sm font-medium text-gray-800">
-            六爻起卦
-          </div>
+          <ModuleNav active="liuyao" />
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">
               {currentLineIndex}/6

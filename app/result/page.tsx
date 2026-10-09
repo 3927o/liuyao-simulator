@@ -1,23 +1,22 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
 import { LiuYaoEngine, YaoValue } from '@/lib/LiuYaoEngine';
 import type { HexagramResult } from '@/lib/LiuYaoEngine';
 import { TimeBot } from '@/lib/TimeBot';
-import { ChevronDown, RotateCcw, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronDown, RotateCcw } from 'lucide-react';
 import { HexagramDiagram } from './HexagramDiagram';
+import { getNowParts } from '@/lib/calendar';
+import { saveHistory, isYaoList, type DivinationRecord, type Interpretation } from '@/lib/divinationHistory';
+import { InterpretationPanel } from '../_components/ui/InterpretationPanel';
+import { ModuleNav } from '../_components/ui/ModuleNav';
+import { useHistoryRecords } from '../_hooks/useHistoryRecords';
 
 // === 实例化工具类 ===
 const engine = new LiuYaoEngine();
 const timeBot = new TimeBot();
-
-interface InterpretStreamEvent {
-  summary?: string;
-  content?: string;
-}
 
 // === 辅助定义 ===
 const YAO_OPTIONS: { value: YaoValue; label: string; symbol: string }[] = [
@@ -27,53 +26,29 @@ const YAO_OPTIONS: { value: YaoValue; label: string; symbol: string }[] = [
   { value: 9, label: '老阳', symbol: '-O-' },
 ];
 
-// === 辅助函数：获取当前本地时间的拆分字符串 ===
-const getNowParts = () => {
-  const now = new Date();
-  const date = now.toLocaleDateString('en-CA');
-  const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return { date, time };
-};
+function DivinationContent({ record, initialLines, initialParts, unsaved }: {
+  record?: DivinationRecord;
+  initialLines?: YaoValue[];
+  initialParts?: { date: string; time: string };
+  unsaved: boolean;
+}) {
+  const [parts, setParts] = useState(() => record ? { date: record.datePart, time: record.timePart } : initialParts ?? getNowParts());
+  const datePart = parts.date;
+  const timePart = parts.time;
+  const [lines, setLines] = useState<YaoValue[]>(() => record?.module === 'liuyao' ? record.lines : initialLines ?? [9, 7, 7, 8, 8, 6]);
+  const [saved, setSaved] = useState(record);
+  const savedIdRef = useRef(record?.id);
+  const [question, setQuestion] = useState(record?.question ?? '');
+  const [interpretation, setInterpretation] = useState(record?.interpretation);
+  const [historyMessage, setHistoryMessage] = useState(record ? '历史记录已恢复' : '');
+  const [historyError, setHistoryError] = useState(unsaved ? '自动保存失败，请点击保存记录重试' : '');
 
-function DivinationContent() {
-  const searchParams = useSearchParams();
-
-  // 1. 状态管理 (拆分日期和时间，避免时区混乱)
-  const [datePart, setDatePart] = useState<string>("");
-  const [timePart, setTimePart] = useState<string>("");
-  const [lines, setLines] = useState<YaoValue[]>([9, 7, 7, 8, 8, 6]);
-
-  // 初始化设置时间 (Client-side only)
-  useEffect(() => {
-    const { date, time } = getNowParts();
-    setDatePart(date);
-    setTimePart(time);
-
-    // 从 URL 读取卦象 (格式: ?lines=6,7,8,9,7,8)
-    const linesParam = searchParams.get('lines');
-    if (linesParam) {
-      try {
-        const parsed = linesParam.split(',').map(v => parseInt(v) as YaoValue);
-        if (parsed.length === 6 && parsed.every(v => [6,7,8,9].includes(v))) {
-          setLines(parsed);
-        }
-      } catch (e) {
-        console.error("Failed to parse lines param", e);
-      }
-    }
-  }, [searchParams]);
-  
   // 2. 实时计算
   const result = useMemo(() => {
     try {
       if (!datePart || !timePart) return null;
       
-      // 拼接标准 ISO 格式: YYYY-MM-DD + T + HH:mm
-      const fullDateStr = `${datePart}T${timePart}`;
-      const targetDate = new Date(fullDateStr);
-
-      // 获取天时
-      const timeInfo = timeBot.getTime(targetDate);
+      const timeInfo = timeBot.getTimeForParts(datePart, timePart);
       // 获取排盘
       const hexInfo = engine.process(lines, timeInfo.dayStem);
       
@@ -84,95 +59,24 @@ function DivinationContent() {
     }
   }, [datePart, timePart, lines]);
 
-  // === AI 解卦状态 ===
-  const [question, setQuestion] = useState('');
-  const [aiSummary, setAiSummary] = useState('');
-  const [aiText, setAiText] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiResponseKind, setAiResponseKind] = useState<'question' | 'diagnosis' | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const handleInterpret = async () => {
-    if (!result || aiLoading) return;
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setAiLoading(true);
-    setAiSummary('');
-    setAiText('');
-    setAiError(null);
-    setAiResponseKind(question.trim() ? 'question' : 'diagnosis');
-
+  function persist(answer?: Interpretation) {
+    if (!result) return;
+    if (answer) setInterpretation(answer);
     try {
-      const res = await fetch('/api/interpret', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          time: result.time,
-          hex: result.hex,
-        }),
-        signal: controller.signal,
-      });
+      const next = saveHistory({ module: 'liuyao', datePart, timePart, lines },
+        { id: savedIdRef.current, question, interpretation: answer ?? interpretation });
+      savedIdRef.current = next.id;
+      setSaved(next); setHistoryMessage('已保存到历史'); setHistoryError('');
+    } catch (error) { setHistoryError(error instanceof Error ? error.message : '保存失败'); }
+  }
 
-      if (!res.ok || !res.body) {
-        throw new Error((await res.text()) || `请求失败 (${res.status})`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        buffer += decoder.decode(value, { stream: !done });
-        const lines = buffer.split('\n');
-        buffer = done ? '' : (lines.pop() ?? '');
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const event = JSON.parse(line) as InterpretStreamEvent;
-          if (event.summary) setAiSummary(event.summary);
-          if (event.content) setAiText((prev) => prev + event.content);
-        }
-        if (done) break;
-      }
-    } catch (e) {
-      if (!controller.signal.aborted) {
-        setAiError(e instanceof Error ? e.message : '解卦失败，请稍后重试');
-      }
-    } finally {
-      if (abortRef.current === controller) {
-        setAiLoading(false);
-      }
-    }
-  };
-
-  // 卦象或时间变化后，旧的解卦结果不再适用
-  useEffect(() => {
-    abortRef.current?.abort();
-    setAiSummary('');
-    setAiText('');
-    setAiError(null);
-    setAiLoading(false);
-    setAiResponseKind(null);
-  }, [lines, datePart, timePart]);
-
-  useEffect(() => () => abortRef.current?.abort(), []);
-
-  // 重置时间为当前
-  const handleResetTime = () => {
-    const { date, time } = getNowParts();
-    setDatePart(date);
-    setTimePart(time);
-  };
-
-  // 3. 交互处理
-  const handleLineChange = (index: number, val: YaoValue) => {
-    const newLines = [...lines];
-    newLines[index] = val;
-    setLines(newLines);
+  function detachReading() {
+    savedIdRef.current = undefined;
+    setSaved(undefined); setInterpretation(undefined); setHistoryMessage('盘面已调整，保存为新记录'); setHistoryError('');
+  }
+  const handleResetTime = () => { detachReading(); setParts(getNowParts()); };
+  const handleLineChange = (index: number, value: YaoValue) => {
+    detachReading(); setLines(lines.map((line, i) => i === index ? value : line));
   };
 
   // 渲染顺序倒序
@@ -191,6 +95,13 @@ function DivinationContent() {
             重新起卦
           </Link>
         </header>
+
+        <ModuleNav active="liuyao" />
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
+          <span>起卦时间：{datePart} {timePart} · 北京时间</span>
+          <div className="flex items-center gap-3"><span role="status">{historyMessage || (saved ? '已保存到历史' : '')}</span><button onClick={() => persist()} disabled={!result} className="rounded-lg bg-white px-3 py-2 text-gray-600 shadow-sm hover:text-gray-900 disabled:opacity-50">保存记录</button></div>
+        </div>
+        {historyError && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-600">{historyError}</p>}
 
         {/* === 次要操作：调整排盘 === */}
         <details className="group">
@@ -222,13 +133,15 @@ function DivinationContent() {
               <input
                 type="date"
                 value={datePart}
-                onChange={(e) => setDatePart(e.target.value)}
+                onChange={(e) => { detachReading(); setParts({ ...parts, date: e.target.value }); }}
+                aria-label="起卦日期" min="1900-01-01" max="2100-12-31"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
               />
               <input
                 type="time"
                 value={timePart}
-                onChange={(e) => setTimePart(e.target.value)}
+                onChange={(e) => { detachReading(); setParts({ ...parts, time: e.target.value }); }}
+                aria-label="起卦时间"
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
               />
             </div>
@@ -326,89 +239,9 @@ function DivinationContent() {
           </div>
         )}
 
-        {/* === AI 解卦 === */}
-        {result && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-gray-800">
-              <Sparkles className="h-4 w-4 text-amber-500" /> AI 解读
-            </h2>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleInterpret()}
-                placeholder="所问何事（选填）：如 本月能否升职，留空则分析当前状态"
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-              />
-              <button
-                onClick={handleInterpret}
-                disabled={aiLoading}
-                className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {aiLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> 推演中
-                  </>
-                ) : (
-                  '起卦解读'
-                )}
-              </button>
-            </div>
-
-            {aiError && (
-              <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-4 py-3">
-                {aiError}
-              </div>
-            )}
-
-            {aiLoading && !aiSummary && !aiText && (
-              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-4 text-sm text-gray-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                </span>
-                正在分析世应关系与卦象结构…
-              </div>
-            )}
-
-            {(aiSummary || aiText) && (
-              <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
-                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/60 px-5 py-3">
-                  <span className="text-xs font-medium tracking-wide text-gray-500">
-                    {aiResponseKind === 'question' ? '针对所问之事' : '当前状态诊断'}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                    <span className={`h-1.5 w-1.5 rounded-full ${aiLoading ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`} />
-                    {aiLoading ? '生成中' : '已完成'}
-                  </span>
-                </div>
-
-                {aiSummary && (
-                  <div className="border-b border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50/40 px-5 py-5">
-                    <div className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-amber-700/70">一句话结论</div>
-                    <p className="text-base font-medium leading-7 text-gray-900">{aiSummary}</p>
-                  </div>
-                )}
-
-                <div
-                  className="px-5 py-5 text-sm leading-7 text-gray-600
-                    [&_h1]:mb-3 [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-gray-900
-                    [&_h2]:mb-3 [&_h2]:mt-7 [&_h2]:border-l-2 [&_h2]:border-gray-900 [&_h2]:pl-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-gray-900 [&_h2:first-child]:mt-0
-                    [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-gray-800
-                    [&_p]:my-2 [&_strong]:font-semibold [&_strong]:text-gray-900
-                    [&_ul]:my-3 [&_ul]:space-y-2 [&_ul]:pl-0
-                    [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5
-                    [&_ul_li]:list-none [&_ul_li]:border-l [&_ul_li]:border-gray-200 [&_ul_li]:pl-3"
-                >
-                  <ReactMarkdown>{aiText}</ReactMarkdown>
-                  {aiLoading && <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse align-middle bg-gray-400" />}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {result && <InterpretationPanel key={`${datePart}-${timePart}-${lines.join(',')}`} module="liuyao"
+          payload={{ time: result.time, hex: result.hex }} initialQuestion={question} initialInterpretation={interpretation}
+          onQuestionChange={setQuestion} onStart={() => persist()} onComplete={persist} />}
 
         {/* === 次要信息：完整排盘 === */}
         {result && (
@@ -430,10 +263,24 @@ function DivinationContent() {
   );
 }
 
+function DivinationLoader() {
+  const searchParams = useSearchParams();
+  const { records, ready, error } = useHistoryRecords();
+  const id = searchParams.get('record');
+  const record = id ? records.find((item) => item.id === id && item.module === 'liuyao') : undefined;
+  const rawLines = searchParams.get('lines');
+  const parsed = rawLines?.split(',').map(Number);
+  const date = searchParams.get('date');
+  const time = searchParams.get('time');
+  if (!ready) return <div className="p-8 text-gray-400">加载中…</div>;
+  if ((id && !record) || (rawLines && !isYaoList(parsed))) return <main className="fixed inset-0 space-y-6 bg-gray-50 p-8"><ModuleNav active="liuyao" /><p role="alert" className="text-sm text-rose-600">{id ? error || '这条六爻记录不存在，可能已被删除或保存在其他浏览器。' : '卦象参数无效，请重新起卦。'}</p></main>;
+  return <DivinationContent key={id ?? searchParams.toString()} record={record} initialLines={isYaoList(parsed) ? parsed : undefined} initialParts={date && time ? { date, time } : undefined} unsaved={searchParams.get('unsaved') === '1'} />;
+}
+
 export default function DivinationPage() {
   return (
     <Suspense fallback={<div className="bg-gray-50 text-gray-400 h-screen flex items-center justify-center">加载中...</div>}>
-      <DivinationContent />
+      <DivinationLoader />
     </Suspense>
   );
 }

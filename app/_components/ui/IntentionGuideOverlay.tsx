@@ -1,5 +1,7 @@
 'use client';
 
+import { ModuleNav } from './ModuleNav';
+
 interface IntentionGuideOverlayProps {
   onComplete: () => void | Promise<void>;
 }
@@ -13,6 +15,7 @@ export function IntentionGuideOverlay({ onComplete }: IntentionGuideOverlayProps
       aria-labelledby="intention-guide-title"
       aria-describedby="intention-guide-description"
     >
+      <div className="absolute top-4 left-4 z-10"><ModuleNav active="liuyao" /></div>
       <button
         type="button"
         autoFocus

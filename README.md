@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 六爻 · 梅花易数
 
-## Getting Started
+Next.js 应用，支持六爻铜钱起卦、梅花易数农历时间起卦、AI 解读与浏览器本地历史。
 
-First, run the development server:
+## 本地运行
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 `http://localhost:3000`。在 `.env.local` 配置 `DEEPSEEK_API_KEY` 可使用 AI 解读，密钥仅由服务端读取。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 页面
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/`：六爻传感器摇卦，完成六爻后自动保存并跳转排盘。
+- `/zen`：六爻长按起卦，完成后自动保存，可进入排盘与 AI 解读。
+- `/result`：六爻排盘，可调整时间与爻值，点击“保存记录”另存新盘。
+- `/meihua`：默认填入当前北京时间，点击“时间起卦”后自动保存。
+- `/history`：查看、按模块筛选、搜索、恢复和删除记录。
 
-## Learn More
+## 梅花时间起卦规则
 
-To learn more about Next.js, take a look at the following resources:
+公历输入自动换算农历。统一采用北京时间（`Asia/Shanghai`），**23:00 换日**：23 点后按次日农历年月日取数，时辰仍为子时；跨农历月、年同样进位。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 年：农历年地支序数，子 1、丑 2……亥 12，以农历新年换年。
+- 月、日：农历月数与日数；闰月沿用对应月数。
+- 时：地支时辰序数，子 1……亥 12，子时为 23:00–00:59。
+- 上卦：`(年 + 月 + 日) % 8`。
+- 下卦：`(年 + 月 + 日 + 时) % 8`。
+- 动爻：`(年 + 月 + 日 + 时) % 6`，从初爻向上数。
+- 卦序：乾 1、兑 2、离 3、震 4、巽 5、坎 6、艮 7、坤 8；余 0 取 8 卦或第 6 爻。
+- 动爻所在的三爻卦为用，另一卦为体；变卦只翻转动爻，互卦取二三四爻为下卦、三四五爻为上卦。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+梅花 AI 由服务端重新计算输入时间对应的排盘，使用体用、本卦、互卦、变卦规则；六爻继续使用纳甲与世应规则。
 
-## Deploy on Vercel
+卦图分开展示上、下经卦。六卦生克面板用箭头连接相邻经卦，横向连接本卦与互卦、互卦与变卦，纵向连接各卦的上、下卦；箭头由生、克的一方指向另一方，比和用双向箭头表示。断卦的体仍为本卦原体。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+卦气按实际北京时间的节令月参考《梅花易数》卷一：春木旺土衰、夏火旺金衰、秋金旺木衰、冬水旺火衰，辰戌丑未月土旺水衰。节令月使用 `getMonthZhiExact()`，按交节时刻切换，与起卦时的农历月数、23 点换日分开计算；其他五行不标旺衰，不据关系数量合算吉凶。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 历史记录
+
+使用当前浏览器的 `localStorage`，键名为 `liuyao-simulator:history:v1`。保存原始时间、起卦输入、卦名、问题和已完成的 AI 解读；恢复时使用原始时间排盘。AI 解读完成后更新同一条记录，修改六爻的时间或爻值后另存新记录。
+
+记录不跨设备同步，清除浏览器数据会移除历史。存储被禁用、写满或数据损坏时会显示错误，起卦和排盘仍可使用。
+
+## 验证
+
+```bash
+npm test
+npm run build
+npm run lint
+```
+
+测试覆盖农历换日／跨月／跨年、闰月、取数余零、64 卦方向、体用关系、历史持久化与错误处理，以及两种 AI 请求和流式响应。
